@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solar Car Charger</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;min-height:100vh;color:#111827}
+.tab-bar{display:flex;background:#fff;border-bottom:1px solid #e5e7eb;padding:0 1.25rem;position:sticky;top:0;z-index:10}
+.tab{padding:10px 16px;font-size:13px;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:5px}
+.tab.on{color:#166534;border-bottom-color:#16a34a;font-weight:500}
+.tab-content{display:none;padding:1.25rem}
+.tab-content.on{display:block}
+
+/* header */
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
+.panel-title{display:flex;align-items:center;gap:8px}
+.p-icon{width:32px;height:32px;background:#f0fdf4;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.p-title{font-size:16px;font-weight:600}
+.pill{font-size:11px;padding:4px 10px;border-radius:20px;font-weight:500;border:1px solid transparent;display:flex;align-items:center;gap:4px}
+.pill-on{background:#f0fdf4;color:#166534;border-color:#bbf7d0}
+.pill-wait{background:#fefce8;color:#854d0e;border-color:#fde68a}
+.pill-off{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb}
+.pill-noplug{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
+
+/* meters */
+.meters{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+@media(max-width:640px){.meters{grid-template-columns:repeat(2,1fr)}}
+.meter{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;border-top:3px solid transparent}
+.m-solar{border-top-color:#f59e0b}.m-house{border-top-color:#3b82f6}
+.m-car{border-top-color:#16a34a}.m-grid{border-top-color:#7c3aed}
+.m-lbl{font-size:10px;color:#6b7280;margin-bottom:5px}
+.m-val{font-size:22px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.m-unit{font-size:11px;font-weight:400;color:#9ca3af}
+.m-sub{font-size:10px;color:#9ca3af;margin-top:3px}
+.m-solar .m-val{color:#b45309}.m-house .m-val{color:#1d4ed8}
+.m-car .m-val{color:#15803d}.m-grid .m-val{color:#6d28d9}
+
+/* sessie banner */
+.session-card{background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #e5e7eb}
+.session-card.active{border-color:#bbf7d0}
+.session-card.noplug{border-color:#fed7aa;background:#fffbf5}
+.session-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-green{background:#16a34a;box-shadow:0 0 0 3px #bbf7d0;animation:pulse 2s infinite}
+.dot-orange{background:#f97316;box-shadow:0 0 0 3px #fed7aa}
+.dot-grey{background:#9ca3af}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px #bbf7d0}50%{box-shadow:0 0 0 6px #dcfce7}}
+.session-info{flex:1}
+.session-title{font-size:12px;font-weight:600;margin-bottom:2px}
+.session-meta{font-size:11px;color:#6b7280;display:flex;gap:10px;flex-wrap:wrap}
+.session-kwh{text-align:right;flex-shrink:0}
+.session-kwh-val{font-size:20px;font-weight:700;color:#15803d;font-variant-numeric:tabular-nums}
+.session-kwh-lbl{font-size:10px;color:#9ca3af}
+
+/* grafiek */
+.chart-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:10px}
+.chart-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap}
+.chart-title{font-size:12px;font-weight:500}
+.chart-sub{font-size:10px;color:#9ca3af;margin-top:1px}
+.chart-leg{display:flex;gap:10px;font-size:10px;color:#6b7280;flex-wrap:wrap;align-items:center}
+.ld{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:3px;vertical-align:middle}
+.ld-dash{width:18px;height:0;display:inline-block;margin-right:3px;vertical-align:middle}
+.range-btns{display:flex;gap:4px;margin-bottom:8px;align-items:center;flex-wrap:wrap}
+.rbtn{padding:3px 9px;font-size:11px;border-radius:5px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer}
+.rbtn.on{background:#f0fdf4;color:#166534;border-color:#bbf7d0;font-weight:500}
+input[type=date]{padding:3px 7px;font-size:11px;border:1px solid #e5e7eb;border-radius:5px;color:#374151;background:#fff}
+.zoom-hint{font-size:10px;color:#9ca3af;margin-top:4px}
+.loading{text-align:center;padding:2rem;color:#9ca3af;font-size:13px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:#f3f4f6;border-radius:8px;padding:9px 10px}
+.stat-lbl{font-size:10px;color:#6b7280;margin-bottom:3px}
+.stat-val{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat-unit{font-size:10px;font-weight:400;color:#9ca3af}
+
+/* logboek */
+.log-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:10px}
+.log-title{font-size:12px;font-weight:500;margin-bottom:8px;color:#374151}
+.log-wrap{overflow-x:auto}
+.log-table{width:100%;border-collapse:collapse;font-size:11px;min-width:560px}
+.log-table th{text-align:left;padding:5px 8px;color:#9ca3af;font-weight:500;border-bottom:1px solid #f3f4f6;font-size:10px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.log-table td{padding:7px 8px;border-bottom:1px solid #f9fafb;color:#374151;white-space:nowrap}
+.log-table tr:last-child td{border-bottom:none}
+.log-table tr:hover td{background:#f9fafb}
+.log-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500}
+.badge-ok{background:#f0fdf4;color:#166534}
+.badge-noplug{background:#fff7ed;color:#9a3412}
+.badge-manual{background:#eff6ff;color:#1d4ed8}
+.empty-log{text-align:center;padding:1.5rem;color:#9ca3af;font-size:12px}
+
+/* paginering */
+.pagination{display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:11px;color:#6b7280;flex-wrap:wrap;gap:6px}
+.page-btns{display:flex;gap:4px;flex-wrap:wrap}
+.page-btn{padding:3px 9px;border:1px solid #e5e7eb;border-radius:5px;background:#fff;color:#6b7280;cursor:pointer;font-size:11px}
+.page-btn.on{background:#f0fdf4;color:#166534;border-color:#bbf7d0;font-weight:500}
+.filter-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.filter-label{font-size:11px;color:#6b7280}
+
+/* instellingen */
+.settings-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:10px}
+.settings-title{font-size:12px;font-weight:500;color:#374151;margin-bottom:8px}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6;gap:8px}
+.srow:last-child{border-bottom:none}
+.srow-left{flex:1}
+.srow-lbl{font-size:13px;color:#374151;display:flex;align-items:center;gap:5px}
+.srow-sub{font-size:11px;color:#9ca3af;margin-top:2px}
+.srow-ctrl{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.sinput{width:68px;background:#f9fafb;border:1px solid #d1d5db;border-radius:6px;color:#111827;font-size:13px;padding:5px 7px;text-align:right}
+.sunit{font-size:11px;color:#9ca3af;width:28px}
+.sbtn{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-weight:500;transition:background .15s}
+.sbtn:hover{background:#dbeafe}
+.sbtn.saved{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+.tog{position:relative;width:36px;height:20px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.tog-sl{position:absolute;inset:0;background:#d1d5db;border-radius:20px;cursor:pointer;transition:background .2s}
+.tog-sl::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
+.tog input:checked + .tog-sl{background:#16a34a}
+.tog input:checked + .tog-sl::before{transform:translateX(16px)}
+
+/* info tooltip */
+.info-btn{width:16px;height:16px;border-radius:50%;background:#e0f2fe;border:none;color:#0369a1;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;position:relative;flex-shrink:0}
+.info-btn:hover .tooltip{display:block}
+.tooltip{display:none;position:absolute;bottom:calc(100% + 6px);right:0;width:240px;background:#1f2937;color:#f9fafb;font-size:11px;line-height:1.6;padding:9px 11px;border-radius:8px;z-index:20;pointer-events:none;text-align:left;font-weight:400}
+.tooltip::after{content:'';position:absolute;top:100%;right:6px;border:5px solid transparent;border-top-color:#1f2937}
+
+/* sensoren */
+.sens-title{font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.sens-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f9fafb;font-size:11px}
+.sens-row:last-child{border-bottom:none}
+.sens-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sens-name{color:#6b7280;min-width:130px;flex-shrink:0}
+.sens-id{font-family:'SF Mono',Menlo,monospace;color:#374151;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sens-state{font-size:10px;color:#9ca3af;margin-left:auto;flex-shrink:0}
+
+.connecting{text-align:center;padding:4rem 2rem;color:#6b7280;font-size:14px}
+.error-msg{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:1rem;color:#dc2626;font-size:13px;margin:1rem}
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <div class="tab on" onclick="switchTab('overview',this)">⚡ Overzicht</div>
+  <div class="tab" onclick="switchTab('history',this)">📊 Historiek</div>
+  <div class="tab" onclick="switchTab('settings',this)">⚙️ Instellingen</div>
+</div>
+
+<div id="tab-overview" class="tab-content on">
+  <div class="connecting" id="connecting-msg">Verbinding maken met Home Assistant...</div>
+</div>
+<div id="tab-history" class="tab-content"></div>
+<div id="tab-settings" class="tab-content"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// CONFIGURATIE — geladen vanuit config.json
+// ─────────────────────────────────────────────
+let cfg = {};
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/local/solar_car_charger/config.json');
+    if (r.ok) cfg = await r.json();
+  } catch(e) {
+    console.warn('config.json niet gevonden, gebruik defaults');
+  }
+}
+
+// ─────────────────────────────────────────────
+// HA WEBSOCKET VERBINDING
+// ─────────────────────────────────────────────
+class HAConnection {
+  constructor() {
+    this.ws = null;
+    this.msgId = 1;
+    this.pending = new Map();
+    this.subs = new Map();
+    this.token = null;
+    this.ready = false;
+    this.onReady = null;
+  }
+
+  getToken() {
+    try {
+      const t = JSON.parse(localStorage.getItem('hassTokens') || '{}');
+      return t.access_token || null;
+    } catch { return null; }
+  }
+
+  connect() {
+    this.token = this.getToken();
+    if (!this.token) { showError('Geen HA auth token gevonden. Open dit panel via de HA sidebar.'); return; }
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    this.ws = new WebSocket(`${proto}://${location.host}/api/websocket`);
+    this.ws.onmessage = e => this._onMsg(JSON.parse(e.data));
+    this.ws.onerror = () => showError('WebSocket fout — herlaad de pagina.');
+    this.ws.onclose = () => { this.ready = false; setTimeout(() => this.connect(), 5000); };
+  }
+
+  _onMsg(msg) {
+    if (msg.type === 'auth_required') {
+      this.ws.send(JSON.stringify({ type: 'auth', access_token: this.token }));
+    } else if (msg.type === 'auth_ok') {
+      this.ready = true;
+      if (this.onReady) this.onReady();
+    } else if (msg.type === 'auth_invalid') {
+      showError('Authenticatie mislukt — herlaad Home Assistant.');
+    } else if (msg.type === 'result') {
+      const cb = this.pending.get(msg.id);
+      if (cb) { cb(msg); this.pending.delete(msg.id); }
+    } else if (msg.type === 'event') {
+      const cb = this.subs.get(msg.id);
+      if (cb) cb(msg.event);
+    }
+  }
+
+  send(msg) {
+    return new Promise(resolve => {
+      const id = this.msgId++;
+      msg.id = id;
+      this.pending.set(id, resolve);
+      this.ws.send(JSON.stringify(msg));
+    });
+  }
+
+  async getStates() {
+    const r = await this.send({ type: 'get_states' });
+    return r.result || [];
+  }
+
+  async subscribeStates(cb) {
+    const id = this.msgId++;
+    this.subs.set(id, cb);
+    this.ws.send(JSON.stringify({ id, type: 'subscribe_events', event_type: 'state_changed' }));
+  }
+
+  async getHistory(entityIds, hoursBack) {
+    const start = new Date(Date.now() - hoursBack * 3600000).toISOString();
+    const r = await this.send({
+      type: 'history/history_during_period',
+      start_time: start,
+      end_time: new Date().toISOString(),
+      entity_ids: entityIds,
+      significant_changes_only: false,
+      no_attributes: true,
+    });
+    return r.result || {};
+  }
+
+  async callService(domain, service, data) {
+    return this.send({ type: 'call_service', domain, service, service_data: data });
+  }
+}
+
+const ha = new HAConnection();
+
+// ─────────────────────────────────────────────
+// APP STATE
+// ─────────────────────────────────────────────
+let states = {};
+let chart1 = null;
+let chart2 = null;
+let chart1Range = 'today';
+let prevSwitchState = null;
+
+// ─────────────────────────────────────────────
+// SESSIE OPSLAG via HA Storage API (WebSocket)
+// Data bewaard in config/.storage/solar_car_charger_sessions
+// Beschikbaar op elk apparaat, in HA backups
+// ─────────────────────────────────────────────
+let _sessionsCache = null;
+
+async function getSessions() {
+  // Gebruik cache als beschikbaar (wordt geïnvalideerd bij opslaan)
+  if (_sessionsCache !== null) return _sessionsCache;
+  try {
+    const r = await ha.send({ type: 'solar_car_charger/get_sessions' });
+    _sessionsCache = r.result?.sessions || [];
+  } catch(e) {
+    console.warn('Sessies ophalen mislukt:', e);
+    _sessionsCache = [];
+  }
+  return _sessionsCache;
+}
+
+async function saveSessionToHA(session) {
+  try {
+    await ha.send({ type: 'solar_car_charger/save_session', session });
+    _sessionsCache = null; // Invalideer cache
+  } catch(e) {
+    console.error('Sessie opslaan mislukt:', e);
+  }
+}
+
+// Huidige actieve sessie tracking
+let activeSession = null;
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+function getState(id) { return states[id] || { state: 'unavailable', attributes: {} }; }
+function getFloat(id, fb = 0) { const v = parseFloat(getState(id).state); return isNaN(v) ? fb : v; }
+function fmtW(w) { return Math.round(w).toLocaleString('nl'); }
+function fmtKwh(k) { return parseFloat(k).toFixed(2); }
+function fmtTime(iso) {
+  if (!iso || iso === '' || iso === 'unknown') return '—';
+  const d = new Date(iso);
+  return isNaN(d) ? '—' : d.toLocaleTimeString('nl', { hour: '2-digit', minute: '2-digit' });
+}
+function fmtDate(iso) {
+  if (!iso || iso === '' || iso === 'unknown') return '—';
+  const d = new Date(iso);
+  return isNaN(d) ? '—' : d.toLocaleDateString('nl', { day: '2-digit', month: '2-digit' });
+}
+function minsSince(iso) {
+  if (!iso || iso === '' || iso === 'unknown') return 0;
+  return Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+}
+function fmtDur(mins) {
+  if (mins < 60) return `${mins} min`;
+  return `${Math.floor(mins/60)}u ${mins%60}min`;
+}
+
+// ─────────────────────────────────────────────
+// BEREKENINGEN
+// ─────────────────────────────────────────────
+function computeValues() {
+  const p1Raw   = getFloat(cfg.p1_power_sensor, 0);
+  const solar   = getFloat(cfg.solar_power_sensor, 0);
+  const carW    = cfg.charger_power_sensor
+    ? getFloat(cfg.charger_power_sensor, 0)
+    : (getState(cfg.charger_switch).state === 'on' ? (cfg.max_charge_kw || 2.3) * 1000 : 0);
+  // P1 negatief = teruglevering
+  // Huisverbruik excl auto = solar + p1Raw - carW (p1Raw positief = afname)
+  const house   = Math.max(solar + p1Raw - carW, 0);
+  // Netto grid flow excl auto: negatief = teruglevering
+  const gridExclCar = p1Raw + carW; // grid zonder auto = wat er zou zijn als auto niet laadde
+  // Teruglevering naar net (positief getal)
+  const gridReturn = Math.max(-p1Raw, 0);
+
+  return { p1Raw, solar, carW, house, gridExclCar, gridReturn };
+}
+
+// ─────────────────────────────────────────────
+// SESSIE TRACKING
+// ─────────────────────────────────────────────
+async function onSwitchChange(newState, oldState) {
+  const chargerOn = newState === 'on';
+  const wasOn = oldState === 'on';
+
+  if (chargerOn && !wasOn) {
+    // Sessie gestart
+    const v = computeValues();
+    activeSession = {
+      startIso: new Date().toISOString(),
+      startSurplus: Math.round(-v.p1Raw), // overschot bij start
+      manual: getState('input_boolean.solar_car_automation_enabled').state === 'off',
+    };
+  }
+
+  if (!chargerOn && wasOn && activeSession) {
+    // Sessie gestopt — opslaan
+    const stopIso = new Date().toISOString();
+    const durMins = Math.round((new Date(stopIso) - new Date(activeSession.startIso)) / 60000);
+    const kwhMuur = getFloat('input_number.solar_car_energy_today', 0);
+    const eff = (cfg.efficiency_percent || 90) / 100;
+    // Lees kWh van de lader meter als beschikbaar
+    const chargerKwh = cfg.charger_power_sensor
+      ? (getFloat(cfg.charger_power_sensor, 0) / 1000 * durMins / 60)
+      : ((cfg.max_charge_kw || 2.3) * durMins / 60);
+    const noplugThreshold = cfg.noplug_threshold_w || 50;
+    const avgPower = cfg.charger_power_sensor ? getFloat(cfg.charger_power_sensor, 0) : 2300;
+    const noplug = avgPower < noplugThreshold;
+
+    const sessions = await getSessions();
+    sessions.unshift({
+      startIso: activeSession.startIso,
+      stopIso,
+      durMins,
+      kwhMuur: parseFloat(chargerKwh.toFixed(3)),
+      kwhAccu: parseFloat((chargerKwh * eff).toFixed(3)),
+      startSurplus: activeSession.startSurplus,
+      status: activeSession.manual ? 'manual' : noplug ? 'noplug' : 'ok',
+    });
+    // Bewaar max 200 sessies
+    if (sessions.length > 200) sessions.splice(200);
+    saveSessions(sessions);
+    activeSession = null;
+  }
+}
+
+// ─────────────────────────────────────────────
+// UI — OVERZICHT TAB
+// ─────────────────────────────────────────────
+async function renderOverview() {
+  const v = computeValues();
+  const chargerOn = getState(cfg.charger_switch).state === 'on';
+  const startIso = getState('input_text.solar_car_session_start').state;
+  const energyToday = getFloat('input_number.solar_car_energy_today', 0);
+  const energyBatt  = getFloat('input_number.solar_car_energy_in_battery_today', 0);
+  const energyTotal = getFloat('input_number.solar_car_energy_total', 0);
+
+  // Sessie live kWh
+  let sessionKwh = 0;
+  if (chargerOn && startIso && startIso !== '' && startIso !== 'unknown') {
+    const hours = (Date.now() - new Date(startIso).getTime()) / 3600000;
+    const powerKw = cfg.charger_power_sensor
+      ? getFloat(cfg.charger_power_sensor, 0) / 1000
+      : (cfg.max_charge_kw || 2.3);
+    sessionKwh = hours * powerKw;
+  }
+
+  // Status pill
+  const noplug = chargerOn && v.carW < (cfg.noplug_threshold_w || 50);
+  let pillHtml = '';
+  if (noplug) pillHtml = `<span class="pill pill-noplug">⚠️ Schakelaar aan — auto niet ingeplugd</span>`;
+  else if (chargerOn) pillHtml = `<span class="pill pill-on">⚡ Laden actief</span>`;
+  else if (-v.p1Raw >= (cfg.min_surplus_w || 500)) pillHtml = `<span class="pill pill-wait">☀️ Overschot beschikbaar — wachten op vertraging</span>`;
+  else pillHtml = `<span class="pill pill-off">🌙 Wachten op overschot</span>`;
+
+  // Sessie banner
+  let bannerHtml = '';
+  if (chargerOn && startIso && startIso !== '' && startIso !== 'unknown') {
+    const mins = minsSince(startIso);
+    const startSurplus = activeSession ? activeSession.startSurplus : '—';
+    const cls = noplug ? 'noplug' : 'active';
+    const dotCls = noplug ? 'dot-orange' : 'dot-green';
+    const title = noplug ? 'Schakelaar aan — auto niet ingeplugd' : 'Laadsessie actief';
+    const titleColor = noplug ? '#9a3412' : '#166634';
+    bannerHtml = `
+      <div class="session-card ${cls}">
+        <div class="session-dot ${dotCls}"></div>
+        <div class="session-info">
+          <div class="session-title" style="color:${titleColor}">${title}</div>
+          <div class="session-meta">
+            <span>⏱ Gestart om ${fmtTime(startIso)}</span>
+            <span>⌛ ${fmtDur(mins)} geleden</span>
+            ${startSurplus !== '—' ? `<span>📡 Overschot bij start: ${startSurplus} W</span>` : ''}
+          </div>
+        </div>
+        <div class="session-kwh">
+          <div class="session-kwh-val">${fmtKwh(sessionKwh)} <span style="font-size:13px;font-weight:500">kWh</span></div>
+          <div class="session-kwh-lbl">deze sessie</div>
+        </div>
+      </div>`;
+  } else {
+    // Toon laatste sessie uit log
+    const sessions = getSessions();
+    if (sessions.length > 0) {
+      const last = sessions[0];
+      bannerHtml = `
+        <div class="session-card">
+          <div class="session-dot dot-grey"></div>
+          <div class="session-info">
+            <div class="session-title" style="color:#6b7280">Laatste sessie — ${fmtDate(last.startIso)}</div>
+            <div class="session-meta">
+              <span>⏱ ${fmtTime(last.startIso)} – ${fmtTime(last.stopIso)}</span>
+              <span>⌛ ${fmtDur(last.durMins)}</span>
+              <span>📡 Overschot bij start: ${last.startSurplus} W</span>
+            </div>
+          </div>
+          <div class="session-kwh">
+            <div class="session-kwh-val" style="color:#6b7280">${fmtKwh(last.kwhMuur)} <span style="font-size:13px;font-weight:500">kWh</span></div>
+            <div class="session-kwh-lbl">laatste sessie</div>
+          </div>
+        </div>`;
+    }
+  }
+
+  // Logboek laatste 10
+  const sessions = (await getSessions()).slice(0, 10);
+  const logRows = sessions.length === 0
+    ? `<tr><td colspan="8" class="empty-log">Nog geen laadsessies geregistreerd</td></tr>`
+    : sessions.map(s => `<tr>
+        <td>${fmtDate(s.startIso)}</td>
+        <td>${fmtTime(s.startIso)}</td>
+        <td>${fmtTime(s.stopIso)}</td>
+        <td>${fmtDur(s.durMins)}</td>
+        <td>${fmtKwh(s.kwhMuur)}</td>
+        <td>${fmtKwh(s.kwhAccu)}</td>
+        <td>${s.startSurplus} W</td>
+        <td>${badgeHtml(s.status)}</td>
+      </tr>`).join('');
+
+  document.getElementById('tab-overview').innerHTML = `
+    <div class="panel-header">
+      <div class="panel-title">
+        <div class="p-icon">⚡</div>
+        <span class="p-title">Solar Car Charger</span>
+      </div>
+      ${pillHtml}
+    </div>
+
+    <div class="meters">
+      <div class="meter m-solar">
+        <div class="m-lbl">☀️ Zonnepanelen</div>
+        <div class="m-val">${fmtW(v.solar)}<span class="m-unit"> W</span></div>
+        <div class="m-sub">huidig vermogen</div>
+      </div>
+      <div class="meter m-house">
+        <div class="m-lbl">🏠 Huisverbruik</div>
+        <div class="m-val">${fmtW(v.house)}<span class="m-unit"> W</span></div>
+        <div class="m-sub">excl. auto</div>
+      </div>
+      <div class="meter m-car">
+        <div class="m-lbl">🔌 Auto laden</div>
+        <div class="m-val">${fmtW(v.carW)}<span class="m-unit"> W</span></div>
+        <div class="m-sub">${chargerOn ? 'actief' : 'niet actief'}</div>
+      </div>
+      <div class="meter m-grid">
+        <div class="m-lbl">📡 Teruglevering</div>
+        <div class="m-val">${fmtW(v.gridReturn)}<span class="m-unit"> W</span></div>
+        <div class="m-sub">naar het net</div>
+      </div>
+    </div>
+
+    ${bannerHtml}
+
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Verbruik / teruglevering net (excl. auto)</div>
+          <div class="chart-sub">Onder nul = teruglevering naar net &nbsp;·&nbsp; boven nul = afname van net &nbsp;·&nbsp; auto laden apart</div>
+        </div>
+        <div class="chart-leg">
+          <span><span class="ld" style="background:#22c55e"></span>Teruglevering</span>
+          <span><span class="ld" style="background:#ef4444"></span>Afname net</span>
+          <span><span class="ld-dash" style="border-top:2px dashed #16a34a"></span>Auto laden</span>
+          <span><span class="ld-dash" style="border-top:2px dashed #f59e0b"></span>Drempel</span>
+        </div>
+      </div>
+      <div class="range-btns">
+        <button class="rbtn ${chart1Range==='1h'?'on':''}" onclick="setChart1Range('1h',this)">1u</button>
+        <button class="rbtn ${chart1Range==='today'?'on':''}" onclick="setChart1Range('today',this)">Vandaag</button>
+        <button class="rbtn ${chart1Range==='7d'?'on':''}" onclick="setChart1Range('7d',this)">7 dagen</button>
+      </div>
+      <canvas id="chart1" height="140"></canvas>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-lbl">Vandaag geladen</div>
+        <div class="stat-val">${fmtKwh(energyToday)}<span class="stat-unit"> kWh</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">In accu (~${cfg.efficiency_percent || 90}%)</div>
+        <div class="stat-val">${fmtKwh(energyBatt)}<span class="stat-unit"> kWh</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Sessies vandaag</div>
+        <div class="stat-val">${getSessions().filter(s=>{
+          const d = new Date(s.startIso); const n = new Date();
+          return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();
+        }).length}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Totaal ooit</div>
+        <div class="stat-val">${fmtKwh(energyTotal)}<span class="stat-unit"> kWh</span></div>
+      </div>
+    </div>
+
+    <div class="log-card">
+      <div class="log-title">📋 Laatste 10 laadsessies</div>
+      <div class="log-wrap">
+        <table class="log-table">
+          <thead><tr>
+            <th>Datum</th><th>Start</th><th>Stop</th><th>Duur</th>
+            <th>kWh (muur)</th><th>kWh (accu)</th><th>Overschot bij start</th><th>Status</th>
+          </tr></thead>
+          <tbody>${logRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  renderChart1();
+}
+
+// ─────────────────────────────────────────────
+// GRAFIEK 1 — P1 + auto laden
+// ─────────────────────────────────────────────
+async function renderChart1() {
+  const hours = chart1Range === '1h' ? 1 : chart1Range === 'today' ? 24 : 168;
+  const entityIds = [cfg.p1_power_sensor];
+  if (cfg.charger_power_sensor) entityIds.push(cfg.charger_power_sensor);
+
+  const history = await ha.getHistory(entityIds, hours);
+
+  const p1History = history[cfg.p1_power_sensor] || [];
+  const carHistory = cfg.charger_power_sensor ? (history[cfg.charger_power_sensor] || []) : [];
+
+  // Bouw tijdreeks op vanuit P1 data
+  const labels = [], p1D = [], carD = [];
+  p1History.forEach(point => {
+    const v = parseFloat(point.s);
+    if (isNaN(v)) return;
+    const t = new Date(point.lu * 1000);
+    labels.push(t.toLocaleTimeString('nl', { hour: '2-digit', minute: '2-digit' }));
+    // P1: negatief = teruglevering, positief = afname
+    // gridExclCar = p1 + car (auto verbruik aftrekken om excl. auto te krijgen)
+    p1D.push(v);
+  });
+
+  // Car data: zoek overeenkomende tijdstip
+  if (carHistory.length > 0) {
+    p1History.forEach((p1pt, i) => {
+      const t = p1pt.lu;
+      // Vind dichtstbijzijnde car punt
+      let closest = carHistory[0];
+      for (const cp of carHistory) {
+        if (Math.abs(cp.lu - t) < Math.abs(closest.lu - t)) closest = cp;
+      }
+      const v = parseFloat(closest.s);
+      carD.push(isNaN(v) ? 0 : v);
+    });
+  } else {
+    p1D.forEach(() => carD.push(0));
+  }
+
+  const canvas = document.getElementById('chart1');
+  if (!canvas) return;
+
+  if (chart1) { chart1.destroy(); chart1 = null; }
+
+  const threshold = -(cfg.min_surplus_w || 500);
+
+  chart1 = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Net (excl. auto)',
+          data: p1D,
+          borderColor: '#3b82f6',
+          backgroundColor: ctx => {
+            const chart = ctx.chart;
+            const { ctx: c, chartArea } = chart;
+            if (!chartArea) return 'transparent';
+            const yZero = chart.scales.y.getPixelForValue(0);
+            const ratio = Math.max(0, Math.min(1, (yZero - chartArea.top) / (chartArea.bottom - chartArea.top)));
+            const grad = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            grad.addColorStop(0, 'rgba(239,68,68,0.18)');
+            grad.addColorStop(Math.max(0, ratio - 0.01), 'rgba(239,68,68,0.03)');
+            grad.addColorStop(Math.min(1, ratio + 0.01), 'rgba(22,163,74,0.03)');
+            grad.addColorStop(1, 'rgba(22,163,74,0.20)');
+            return grad;
+          },
+          fill: 'origin',
+          tension: 0.3,
+          pointRadius: 0,
+          borderWidth: 2,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Auto laden',
+          data: carD,
+          borderColor: '#16a34a',
+          backgroundColor: 'rgba(22,163,74,0.06)',
+          fill: 'origin',
+          tension: 0.3,
+          pointRadius: 0,
+          borderWidth: 2,
+          borderDash: [6, 3],
+          yAxisID: 'ycar',
+        },
+        {
+          label: 'Drempel',
+          data: Array(labels.length).fill(threshold),
+          borderColor: '#f59e0b',
+          borderDash: [5, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          yAxisID: 'y',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1f2937',
+          titleColor: '#9ca3af',
+          bodyColor: '#f9fafb',
+          borderColor: '#374151',
+          borderWidth: 1,
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 0) {
+                const v = ctx.parsed.y;
+                return v <= 0
+                  ? ` Teruglevering: ${Math.abs(Math.round(v))} W`
+                  : ` Afname net: ${Math.round(v)} W`;
+              }
+              if (ctx.datasetIndex === 1 && ctx.parsed.y > 0)
+                return ` Auto laden: ${Math.round(ctx.parsed.y)} W`;
+              if (ctx.datasetIndex === 2)
+                return ` Drempel: ${Math.abs(Math.round(ctx.parsed.y))} W`;
+              return null;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: '#f3f4f6' },
+          ticks: { color: '#9ca3af', font: { size: 10 }, maxTicksLimit: 8 },
+        },
+        y: {
+          grid: {
+            color: ctx => ctx.tick.value === 0 ? '#9ca3af' : '#f3f4f6',
+            lineWidth: ctx => ctx.tick.value === 0 ? 2 : 1,
+          },
+          ticks: {
+            color: '#9ca3af',
+            font: { size: 10 },
+            callback: v => v > 0 ? `+${Math.round(v)}W` : `${Math.round(v)}W`,
+          },
+          title: { display: true, text: '← teruglevering  |  afname →', color: '#9ca3af', font: { size: 10 } },
+        },
+        ycar: {
+          position: 'right',
+          min: 0,
+          grid: { display: false },
+          ticks: { color: '#16a34a', font: { size: 10 }, callback: v => v > 0 ? `${Math.round(v)}W` : '' },
+          title: { display: true, text: 'Auto laden', color: '#16a34a', font: { size: 10 } },
+        },
+      },
+    },
+  });
+}
+
+function setChart1Range(range, btn) {
+  chart1Range = range;
+  document.querySelectorAll('#tab-overview .rbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderChart1();
+}
+
+// ─────────────────────────────────────────────
+// UI — HISTORIEK TAB
+// ─────────────────────────────────────────────
+let histPage = 1;
+let histFiltered = [];
+const HIST_PER_PAGE = 10;
+
+async function renderHistory() {
+  document.getElementById('tab-history').innerHTML = `
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Geladen energie per sessie</div>
+          <div class="chart-sub">kWh gemeten aan de schakelaar &nbsp;·&nbsp; oranje = auto niet ingeplugd</div>
+        </div>
+        <div class="chart-leg">
+          <span><span class="ld" style="background:#16a34a"></span>Geladen (kWh)</span>
+          <span><span class="ld" style="background:#f97316"></span>Niet ingeplugd</span>
+        </div>
+      </div>
+      <div class="range-btns">
+        <button class="rbtn" onclick="setChart2Range(7,this)">7d</button>
+        <button class="rbtn on" onclick="setChart2Range(30,this)">30d</button>
+        <button class="rbtn" onclick="setChart2Range(90,this)">3m</button>
+        <button class="rbtn" onclick="setChart2Range(365,this)">1j</button>
+        <span style="font-size:10px;color:#9ca3af;margin-left:4px">of:</span>
+        <input type="date" id="c2-from">
+        <span style="font-size:11px;color:#9ca3af">→</span>
+        <input type="date" id="c2-to">
+        <button class="rbtn" onclick="applyChart2Date()" style="background:#f0fdf4;border-color:#bbf7d0;color:#166534">Pas toe</button>
+      </div>
+      <canvas id="chart2" height="130"></canvas>
+      <div class="zoom-hint">💡 Sleep om te pannen · scroll om in/uit te zoomen · dubbelklik om te resetten</div>
+    </div>
+
+    <div class="log-card">
+      <div class="log-title">📋 Alle laadsessies</div>
+      <div class="filter-row">
+        <span class="filter-label">Filter:</span>
+        <input type="date" id="log-from">
+        <span style="font-size:11px;color:#9ca3af">→</span>
+        <input type="date" id="log-to">
+        <button class="rbtn" onclick="applyLogFilter()" style="background:#f0fdf4;border-color:#bbf7d0;color:#166534">Zoeken</button>
+        <button class="rbtn" onclick="resetLogFilter()">Reset</button>
+        <span id="log-count" style="font-size:11px;color:#9ca3af;margin-left:auto"></span>
+      </div>
+      <div class="log-wrap">
+        <table class="log-table">
+          <thead><tr>
+            <th>Datum</th><th>Start</th><th>Stop</th><th>Duur</th>
+            <th>kWh (muur)</th><th>kWh (accu)</th><th>Overschot bij start</th><th>Status</th>
+          </tr></thead>
+          <tbody id="hist-log-body"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="hist-page-info"></span>
+        <div class="page-btns" id="hist-page-btns"></div>
+      </div>
+    </div>`;
+
+  histFiltered = await getSessions();
+  renderHistLog();
+  buildChart2(30);
+}
+
+function renderHistLog() {
+  const total = histFiltered.length;
+  const pages = Math.max(1, Math.ceil(total / HIST_PER_PAGE));
+  histPage = Math.min(histPage, pages);
+  const slice = histFiltered.slice((histPage-1)*HIST_PER_PAGE, histPage*HIST_PER_PAGE);
+
+  const rows = slice.length === 0
+    ? `<tr><td colspan="8" class="empty-log">Geen sessies gevonden</td></tr>`
+    : slice.map(s => `<tr>
+        <td>${fmtDate(s.startIso)}</td>
+        <td>${fmtTime(s.startIso)}</td>
+        <td>${fmtTime(s.stopIso)}</td>
+        <td>${fmtDur(s.durMins)}</td>
+        <td>${fmtKwh(s.kwhMuur)}</td>
+        <td>${fmtKwh(s.kwhAccu)}</td>
+        <td>${s.startSurplus} W</td>
+        <td>${badgeHtml(s.status)}</td>
+      </tr>`).join('');
+
+  document.getElementById('hist-log-body').innerHTML = rows;
+  document.getElementById('hist-page-info').textContent = `${total} sessies · pagina ${histPage} van ${pages}`;
+  const pb = document.getElementById('hist-page-btns');
+  pb.innerHTML = '';
+  for (let p = 1; p <= pages; p++) {
+    const b = document.createElement('button');
+    b.className = 'page-btn' + (p===histPage?' on':'');
+    b.textContent = p;
+    b.onclick = () => { histPage=p; renderHistLog(); };
+    pb.appendChild(b);
+  }
+  if (document.getElementById('log-count'))
+    document.getElementById('log-count').textContent = `${total} sessies`;
+}
+
+async function applyLogFilter() {
+  const from = document.getElementById('log-from').value;
+  const to   = document.getElementById('log-to').value;
+  histFiltered = (await getSessions()).filter(s => {
+    const ds = s.startIso ? s.startIso.slice(0,10) : '';
+    return (!from || ds >= from) && (!to || ds <= to);
+  });
+  histPage = 1;
+  renderHistLog();
+}
+
+async function resetLogFilter() {
+  document.getElementById('log-from').value = '';
+  document.getElementById('log-to').value = '';
+  histFiltered = await getSessions();
+  histPage = 1;
+  renderHistLog();
+}
+
+async function buildChart2(days) {
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+  const sessions = (await getSessions()).filter(s => s.startIso >= cutoff).reverse();
+  renderChart2(sessions);
+}
+
+async function applyChart2Date() {
+  const from = document.getElementById('c2-from').value;
+  const to   = document.getElementById('c2-to').value;
+  const sessions = (await getSessions()).filter(s => {
+    const ds = s.startIso ? s.startIso.slice(0,10) : '';
+    return (!from || ds >= from) && (!to || ds <= to);
+  }).reverse();
+  renderChart2(sessions);
+}
+
+function renderChart2(sessions) {
+  const labels  = sessions.map(s => fmtDate(s.startIso) + ' ' + fmtTime(s.startIso));
+  const kwhOk   = sessions.map(s => s.status === 'noplug' ? 0 : s.kwhMuur);
+  const kwhBad  = sessions.map(s => s.status === 'noplug' ? s.kwhMuur : 0);
+  const canvas  = document.getElementById('chart2');
+  if (!canvas) return;
+  if (chart2) { chart2.destroy(); chart2 = null; }
+  chart2 = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Geladen (kWh)', data: kwhOk,  backgroundColor: '#16a34a', borderRadius: 3, borderSkipped: false },
+        { label: 'Niet ingeplugd', data: kwhBad, backgroundColor: '#f97316', borderRadius: 3, borderSkipped: false },
+      ],
+    },
+    options: {
+      responsive: true, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1f2937', titleColor: '#9ca3af', bodyColor: '#f9fafb',
+          borderColor: '#374151', borderWidth: 1,
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} kWh` },
+        },
+        zoom: {
+          pan: { enabled: true, mode: 'x' },
+          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+        },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 }, maxRotation: 45, maxTicksLimit: 14 } },
+        y: { grid: { color: '#f3f4f6' }, ticks: { color: '#9ca3af', font: { size: 10 } }, beginAtZero: true,
+          title: { display: true, text: 'kWh', color: '#9ca3af', font: { size: 10 } } },
+      },
+    },
+  });
+}
+
+async function setChart2Range(days, btn) {
+  document.querySelectorAll('#tab-history .rbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  buildChart2(days);
+}
+
+// ─────────────────────────────────────────────
+// UI — INSTELLINGEN TAB
+// ─────────────────────────────────────────────
+function renderSettings() {
+  const autoEnabled = getState('input_boolean.solar_car_automation_enabled').state === 'on';
+
+  const sensors = [
+    ['P1 netstroom', cfg.p1_power_sensor],
+    ['Zonnepanelen', cfg.solar_power_sensor],
+    ['Lader schakelaar', cfg.charger_switch],
+    ['Lader vermogen', cfg.charger_power_sensor || '(niet geconfigureerd)'],
+  ];
+
+  document.getElementById('tab-settings').innerHTML = `
+    <div class="settings-card">
+      <div class="settings-title">Automatisering</div>
+      ${settingToggle('Automatisering actief', 'solar_car_automation_enabled', autoEnabled)}
+      ${settingNumber('Minimaal overschot om te laden', 'min_surplus_w', cfg.min_surplus_w || 500, 'W', 0, 5000, 50)}
+      ${settingNumber('Vertraging inschakelen', 'delay_on_seconds', cfg.delay_on_seconds || 120, 's', 30, 600, 30)}
+      ${settingNumber('Vertraging uitschakelen', 'delay_off_seconds', cfg.delay_off_seconds || 180, 's', 30, 600, 30)}
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-title">Energie tracking</div>
+      ${settingNumberInfo('Laadefficiëntie', 'efficiency_percent', cfg.efficiency_percent || 90, '%', 70, 100, 1,
+        'Niet alle stroom die de schakelaar meet komt in de accu terecht — een deel gaat verloren als warmte in de lader en kabels.<br><br>Voorbeeld: schakelaar meet 2,3 kWh · efficiëntie 90% → 2,07 kWh in de accu.<br><br>Typische waarde: 88–93%. Vergelijk het dashboard met je auto-app na een sessie om dit bij te stellen.')}
+      ${settingNumberInfo('Drempel "niet ingeplugd"', 'noplug_threshold_w', cfg.noplug_threshold_w || 50, 'W', 0, 200, 10,
+        'Als de schakelaar AAN staat maar de energiemeter minder dan dit aantal watt meet, wordt aangenomen dat de auto niet ingeplugd is. Die sessie wordt oranje gemarkeerd in het logboek.<br><br>Aanbevolen: 50 W.')}
+    </div>
+
+    <div class="settings-card">
+      <div class="sens-title">Geconfigureerde sensoren</div>
+      ${sensors.map(([name, id]) => {
+        if (!id) return '';
+        const s = getState(id);
+        const ok = s.state !== 'unavailable' && s.state !== 'unknown';
+        return `<div class="sens-row">
+          <span class="sens-dot" style="background:${ok?'#16a34a':'#ef4444'}"></span>
+          <span class="sens-name">${name}</span>
+          <span class="sens-id">${id}</span>
+          <span class="sens-state">${s.state !== 'unavailable' ? s.state + (s.attributes.unit_of_measurement||'') : '⚠️ unavailable'}</span>
+        </div>`;
+      }).join('')}
+      <div style="margin-top:10px;font-size:11px;color:#9ca3af">
+        Sensoren wijzigen via <strong>Instellingen → Integraties → Solar Car Charger → Opties</strong>
+      </div>
+    </div>`;
+}
+
+function settingToggle(label, haEntity, checked) {
+  return `<div class="srow">
+    <div class="srow-left"><div class="srow-lbl">${label}</div></div>
+    <label class="tog">
+      <input type="checkbox" ${checked?'checked':''} onchange="toggleEntity('${haEntity}',this.checked)">
+      <span class="tog-sl"></span>
+    </label>
+  </div>`;
+}
+
+function settingNumber(label, key, val, unit, min, max, step) {
+  return `<div class="srow">
+    <div class="srow-left"><div class="srow-lbl">${label}</div></div>
+    <div class="srow-ctrl">
+      <input class="sinput" id="set-${key}" type="number" value="${val}" min="${min}" max="${max}" step="${step}">
+      <span class="sunit">${unit}</span>
+      <button class="sbtn" id="btn-${key}" onclick="saveSetting('${key}')">Sla op</button>
+    </div>
+  </div>`;
+}
+
+function settingNumberInfo(label, key, val, unit, min, max, step, tooltip) {
+  return `<div class="srow">
+    <div class="srow-left">
+      <div class="srow-lbl">${label}
+        <div class="info-btn">?<div class="tooltip">${tooltip}</div></div>
+      </div>
+    </div>
+    <div class="srow-ctrl">
+      <input class="sinput" id="set-${key}" type="number" value="${val}" min="${min}" max="${max}" step="${step}">
+      <span class="sunit">${unit}</span>
+      <button class="sbtn" id="btn-${key}" onclick="saveSetting('${key}')">Sla op</button>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+// ACTIES
+// ─────────────────────────────────────────────
+async function toggleEntity(entity, enabled) {
+  const [domain, service] = entity.startsWith('input_boolean')
+    ? ['input_boolean', enabled ? 'turn_on' : 'turn_off']
+    : ['switch', enabled ? 'turn_on' : 'turn_off'];
+  await ha.callService(domain, service, { entity_id: entity });
+}
+
+async function saveSetting(key) {
+  const input = document.getElementById('set-' + key);
+  const btn   = document.getElementById('btn-' + key);
+  if (!input || !btn) return;
+  const val = parseFloat(input.value);
+  cfg[key] = val;
+  // Persisteer in config via input_number helpers indien aanwezig
+  const entityMap = {
+    min_surplus_w:       'input_number.solar_car_min_surplus',
+    delay_on_seconds:    'input_number.solar_car_delay_on',
+    delay_off_seconds:   'input_number.solar_car_delay_off',
+    efficiency_percent:  'input_number.solar_car_efficiency',
+    noplug_threshold_w:  'input_number.solar_car_noplug_threshold',
+  };
+  const entityId = entityMap[key];
+  if (entityId && states[entityId] !== undefined) {
+    await ha.callService('input_number', 'set_value', { entity_id: entityId, value: val });
+  }
+  btn.textContent = '✓ Opgeslagen';
+  btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = 'Sla op'; btn.classList.remove('saved'); }, 2000);
+}
+
+// ─────────────────────────────────────────────
+// HELPERS UI
+// ─────────────────────────────────────────────
+function badgeHtml(status) {
+  if (status === 'noplug') return `<span class="log-badge badge-noplug">⚠️ Niet ingeplugd</span>`;
+  if (status === 'manual') return `<span class="log-badge badge-manual">✋ Handmatig</span>`;
+  return `<span class="log-badge badge-ok">✓ Voltooid</span>`;
+}
+
+async function switchTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('tab-' + name).classList.add('on');
+  el.classList.add('on');
+  if (name === 'history') await renderHistory();
+  if (name === 'settings') renderSettings();
+}
+
+function showError(msg) {
+  document.getElementById('tab-overview').innerHTML = `<div class="error-msg">⚠️ ${msg}</div>`;
+}
+
+// ─────────────────────────────────────────────
+// STATE CHANGE HANDLER
+// ─────────────────────────────────────────────
+const WATCHED = () => [
+  cfg.p1_power_sensor, cfg.solar_power_sensor,
+  cfg.charger_switch, cfg.charger_power_sensor,
+  'input_number.solar_car_energy_today',
+  'input_number.solar_car_energy_in_battery_today',
+  'input_number.solar_car_energy_total',
+  'input_text.solar_car_session_start',
+  'input_boolean.solar_car_automation_enabled',
+].filter(Boolean);
+
+function onStateChange(event) {
+  const { entity_id, new_state, old_state } = event.data;
+  if (!new_state) return;
+  states[entity_id] = new_state;
+
+  // Sessie tracking
+  if (entity_id === cfg.charger_switch) {
+    onSwitchChange(new_state.state, old_state ? old_state.state : prevSwitchState);
+    prevSwitchState = new_state.state;
+  }
+
+  if (WATCHED().includes(entity_id)) {
+    renderOverview();
+  }
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+async function init() {
+  await loadConfig();
+
+  if (!cfg.p1_power_sensor) {
+    showError('Integratie nog niet geconfigureerd. Ga naar Instellingen → Integraties → Solar Car Charger → Configureren.');
+    return;
+  }
+
+  ha.onReady = async () => {
+    const allStates = await ha.getStates();
+    allStates.forEach(s => { states[s.entity_id] = s; });
+    prevSwitchState = getState(cfg.charger_switch).state;
+    renderOverview();
+    ha.subscribeStates(onStateChange);
+  };
+
+  ha.connect();
+}
+
+init();
+</script>
+</body>
+</html>
