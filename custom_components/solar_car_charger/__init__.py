@@ -16,6 +16,7 @@ from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_change,
 )
+from homeassistant.setup import async_setup_component
 
 from .const import (
     DOMAIN, PANEL_URL, PANEL_TITLE, PANEL_ICON,
@@ -83,6 +84,9 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     nooit bij een upgrade of herlaad. Helpers met energiedata worden ook verwijderd
     — de sessiehistoriek in HA storage blijft bewaard.
     """
+    for domain in ("input_boolean", "input_number", "input_text"):
+        await async_setup_component(hass, domain, {})
+
     all_helpers = [
         ("input_boolean", AUTOMATION_BOOL),
         ("input_number",  ENERGY_TODAY),
@@ -215,6 +219,9 @@ async def _register_panel(hass: HomeAssistant) -> None:
 
 async def _setup_helpers(hass: HomeAssistant, cfg: dict) -> None:
     """Maak alle benodigde helpers aan als ze nog niet bestaan, en stel initiële waarden in."""
+
+    for domain in ("input_boolean", "input_number", "input_text"):
+        await async_setup_component(hass, domain, {})
 
     # ── aanmaken ─────────────────────────────────────────────────────────────
 

@@ -187,25 +187,47 @@ class HAConnection {
 
   getToken() {
     try {
-      const t = JSON.parse(localStorage.getItem('hassTokens') || '{}');
-      return t.access_token || null;
-    } catch { return null; }
+      const raw = localStorage.getItem('hassTokens');
+      if (!raw) { console.error('[SCC] hassTokens missing from localStorage'); return null; }
+      const t = JSON.parse(raw);
+      if (!t.access_token) { console.error('[SCC] hassTokens has no access_token'); return null; }
+      if (t.expires && Date.now() > t.expires) {
+        console.error('[SCC] access_token expired at', new Date(t.expires));
+        return '__expired__';
+      }
+      return t.access_token;
+    } catch (e) { console.error('[SCC] getToken error:', e); return null; }
   }
 
   connect() {
+    if ((this._retries || 0) >= 3) {
+      showError('Kan geen verbinding maken met Home Assistant na 3 pogingen. Herlaad de pagina (F5).');
+      return;
+    }
     this.token = this.getToken();
     if (!this.token) { showError('Geen HA auth token gevonden. Open dit panel via de HA sidebar.'); return; }
+    if (this.token === '__expired__') { showError('Sessie verlopen — herlaad Home Assistant (F5).'); return; }
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    this.ws = new WebSocket(`${proto}://${location.host}/api/websocket`);
-    this.ws.onmessage = e => this._onMsg(JSON.parse(e.data));
-    this.ws.onerror = () => showError('WebSocket fout — herlaad de pagina.');
-    this.ws.onclose = () => { this.ready = false; setTimeout(() => this.connect(), 5000); };
+    const url = `${proto}://${location.host}/api/websocket`;
+    console.log('[SCC] Connecting to', url);
+    this.ws = new WebSocket(url);
+    this.ws.onmessage = e => { try { this._onMsg(JSON.parse(e.data)); } catch(err) { console.error('[SCC] onmessage error:', err); } };
+    this.ws.onerror = () => { console.error('[SCC] WebSocket error'); showError('WebSocket fout — herlaad de pagina.'); };
+    this.ws.onclose = e => {
+      console.warn('[SCC] WebSocket closed:', e.code, e.reason);
+      this.ready = false;
+      this._retries = (this._retries || 0) + 1;
+      if (this._retries < 3) setTimeout(() => this.connect(), 5000);
+      else showError('Verbinding verbroken (code ' + e.code + '). Herlaad Home Assistant (F5).');
+    };
   }
 
   _onMsg(msg) {
     if (msg.type === 'auth_required') {
       this.ws.send(JSON.stringify({ type: 'auth', access_token: this.token }));
     } else if (msg.type === 'auth_ok') {
+      console.log('[SCC] auth_ok');
+      this._retries = 0;
       this.ready = true;
       if (this.onReady) this.onReady();
     } else if (msg.type === 'auth_invalid') {

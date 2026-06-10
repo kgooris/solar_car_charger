@@ -1,4 +1,7 @@
 {
   "name": "Solar Car Charger and Monitor",
-  "render_readme": true
+  "render_readme": true,
+  "homeassistant": "2023.6.0",
+  "content_in_root": false,
+  "icon": "custom_components/solar_car_charger/icon.png"
 }
