@@ -24,13 +24,11 @@ from .const import (
     CONF_DELAY_OFF,
     CONF_EFFICIENCY,
     CONF_MAX_CHARGE_KW,
-    CONF_DAILY_GOAL,
     DEFAULT_MIN_SURPLUS,
     DEFAULT_DELAY_ON,
     DEFAULT_DELAY_OFF,
     DEFAULT_EFFICIENCY,
     DEFAULT_MAX_CHARGE_KW,
-    DEFAULT_DAILY_GOAL,
 )
 
 
@@ -175,10 +173,6 @@ class SolarCarChargerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_EFFICIENCY,
                 default=self._data.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY),
             ): _number_selector(70, 100, 1, "%"),
-            vol.Required(
-                CONF_DAILY_GOAL,
-                default=self._data.get(CONF_DAILY_GOAL, DEFAULT_DAILY_GOAL),
-            ): _number_selector(0, 100, 1, "kWh"),
         })
         return self.async_show_form(
             step_id="thresholds",
@@ -302,10 +296,6 @@ class SolarCarChargerOptionsFlow(config_entries.OptionsFlow):
                 CONF_EFFICIENCY,
                 default=self._data.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY),
             ): _number_selector(70, 100, 1, "%"),
-            vol.Required(
-                CONF_DAILY_GOAL,
-                default=self._data.get(CONF_DAILY_GOAL, DEFAULT_DAILY_GOAL),
-            ): _number_selector(0, 100, 1, "kWh"),
         })
         return self.async_show_form(
             step_id="thresholds",

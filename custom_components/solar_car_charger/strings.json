@@ -38,8 +38,7 @@
           "min_surplus_w": "Minimaal overschot om te starten (W)",
           "delay_on_seconds": "Vertraging inschakelen (seconden)",
           "delay_off_seconds": "Vertraging uitschakelen (seconden)",
-          "efficiency_percent": "Laadefficiëntie (%)",
-          "daily_goal_kwh": "Dagelijks laaddoel (kWh)"
+          "efficiency_percent": "Laadefficiëntie (%)"
         },
         "data_description": {
           "min_surplus_w": "Aanbevolen: 300–800W. Lager = eerder starten maar mogelijk iets van net afnemen bij wolken.",
@@ -88,8 +87,7 @@
           "min_surplus_w": "Minimaal overschot om te starten (W)",
           "delay_on_seconds": "Vertraging inschakelen (seconden)",
           "delay_off_seconds": "Vertraging uitschakelen (seconden)",
-          "efficiency_percent": "Laadefficiëntie (%)",
-          "daily_goal_kwh": "Dagelijks laaddoel (kWh)"
+          "efficiency_percent": "Laadefficiëntie (%)"
         }
       }
     }

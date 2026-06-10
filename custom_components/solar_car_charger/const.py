@@ -17,7 +17,6 @@ CONF_DELAY_ON = "delay_on_seconds"
 CONF_DELAY_OFF = "delay_off_seconds"
 CONF_EFFICIENCY = "efficiency_percent"
 CONF_MAX_CHARGE_KW = "max_charge_kw"
-CONF_DAILY_GOAL = "daily_goal_kwh"
 
 # Standaardwaarden
 DEFAULT_MIN_SURPLUS = 500
@@ -25,4 +24,3 @@ DEFAULT_DELAY_ON = 120
 DEFAULT_DELAY_OFF = 180
 DEFAULT_EFFICIENCY = 90
 DEFAULT_MAX_CHARGE_KW = 2.3
-DEFAULT_DAILY_GOAL = 10

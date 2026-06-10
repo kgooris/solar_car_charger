@@ -153,7 +153,6 @@ Select the current output power sensor of your solar inverter (always positive d
 | Switch-on delay | 120 s | Surplus must be stable for this long before turning on |
 | Switch-off delay | 180 s | Deficit must last this long before turning off |
 | Charge efficiency | 90 % | Energy loss between the wall socket and the car battery |
-| Daily goal | 10 kWh | Target shown in dashboard statistics |
 
 All thresholds can be changed later without re-running the wizard: either via **Settings → Integrations → Solar Car Charger → Options**, or directly in the dashboard Settings tab.
 
@@ -396,7 +395,6 @@ Selecteer de actuele vermogensensor van je omvormer (altijd positief overdag, 0 
 | Inschakelvertraging | 120 s | Overschot moet zo lang stabiel zijn voor inschakelen |
 | Uitschakelvertraging | 180 s | Tekort moet zo lang aanhouden voor uitschakelen |
 | Laadefficiëntie | 90 % | Energieverlies tussen stopcontact en accu van de auto |
-| Dagelijks laaddoel | 10 kWh | Doelstelling getoond in de dashboardstatistieken |
 
 Alle drempelwaarden zijn later aanpasbaar zonder de wizard opnieuw te doorlopen: via **Instellingen → Integraties → Solar Car Charger → Opties**, of rechtstreeks in het tabblad Instellingen van het dashboard.
 
