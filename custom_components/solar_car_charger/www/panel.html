@@ -381,7 +381,7 @@ async function onSwitchChange(newState, oldState) {
     activeSession = {
       startIso: new Date().toISOString(),
       startSurplus: Math.round(-v.p1Raw), // overschot bij start
-      manual: getState('input_boolean.solar_car_automation_enabled').state === 'off',
+      manual: getState('switch.solar_car_automation_enabled').state === 'off',
     };
   }
 
@@ -389,7 +389,7 @@ async function onSwitchChange(newState, oldState) {
     // Sessie gestopt — opslaan
     const stopIso = new Date().toISOString();
     const durMins = Math.round((new Date(stopIso) - new Date(activeSession.startIso)) / 60000);
-    const kwhMuur = getFloat('input_number.solar_car_energy_today', 0);
+    const kwhMuur = getFloat('number.solar_car_energy_today', 0);
     const eff = (cfg.efficiency_percent || 90) / 100;
     // Lees kWh van de lader meter als beschikbaar
     const chargerKwh = cfg.charger_power_sensor
@@ -422,10 +422,10 @@ async function onSwitchChange(newState, oldState) {
 async function renderOverview() {
   const v = computeValues();
   const chargerOn = getState(cfg.charger_switch).state === 'on';
-  const startIso = getState('input_text.solar_car_session_start').state;
-  const energyToday = getFloat('input_number.solar_car_energy_today', 0);
-  const energyBatt  = getFloat('input_number.solar_car_energy_in_battery_today', 0);
-  const energyTotal = getFloat('input_number.solar_car_energy_total', 0);
+  const startIso = getState('text.solar_car_session_start').state;
+  const energyToday = getFloat('number.solar_car_energy_today', 0);
+  const energyBatt  = getFloat('number.solar_car_energy_in_battery_today', 0);
+  const energyTotal = getFloat('number.solar_car_energy_total', 0);
 
   // Sessie live kWh
   let sessionKwh = 0;
@@ -952,7 +952,7 @@ async function setChart2Range(days, btn) {
 // UI — INSTELLINGEN TAB
 // ─────────────────────────────────────────────
 function renderSettings() {
-  const autoEnabled = getState('input_boolean.solar_car_automation_enabled').state === 'on';
+  const autoEnabled = getState('switch.solar_car_automation_enabled').state === 'on';
 
   const sensors = [
     ['P1 netstroom', cfg.p1_power_sensor],
@@ -964,7 +964,7 @@ function renderSettings() {
   document.getElementById('tab-settings').innerHTML = `
     <div class="settings-card">
       <div class="settings-title">Automatisering</div>
-      ${settingToggle('Automatisering actief', 'solar_car_automation_enabled', autoEnabled)}
+      ${settingToggle('Automatisering actief', 'switch.solar_car_automation_enabled', autoEnabled)}
       ${settingNumber('Minimaal overschot om te laden', 'min_surplus_w', cfg.min_surplus_w || 500, 'W', 0, 5000, 50)}
       ${settingNumber('Vertraging inschakelen', 'delay_on_seconds', cfg.delay_on_seconds || 120, 's', 30, 600, 30)}
       ${settingNumber('Vertraging uitschakelen', 'delay_off_seconds', cfg.delay_off_seconds || 180, 's', 30, 600, 30)}
@@ -1051,15 +1051,15 @@ async function saveSetting(key) {
   cfg[key] = val;
   // Persisteer in config via input_number helpers indien aanwezig
   const entityMap = {
-    min_surplus_w:       'input_number.solar_car_min_surplus',
-    delay_on_seconds:    'input_number.solar_car_delay_on',
-    delay_off_seconds:   'input_number.solar_car_delay_off',
-    efficiency_percent:  'input_number.solar_car_efficiency',
-    noplug_threshold_w:  'input_number.solar_car_noplug_threshold',
+    min_surplus_w:       'number.solar_car_min_surplus',
+    delay_on_seconds:    'number.solar_car_delay_on',
+    delay_off_seconds:   'number.solar_car_delay_off',
+    efficiency_percent:  'number.solar_car_efficiency',
+    noplug_threshold_w:  'number.solar_car_noplug_threshold',
   };
   const entityId = entityMap[key];
   if (entityId && states[entityId] !== undefined) {
-    await ha.callService('input_number', 'set_value', { entity_id: entityId, value: val });
+    await ha.callService('number', 'set_value', { entity_id: entityId, value: val });
   }
   btn.textContent = '✓ Opgeslagen';
   btn.classList.add('saved');
@@ -1094,11 +1094,11 @@ function showError(msg) {
 const WATCHED = () => [
   cfg.p1_power_sensor, cfg.solar_power_sensor,
   cfg.charger_switch, cfg.charger_power_sensor,
-  'input_number.solar_car_energy_today',
-  'input_number.solar_car_energy_in_battery_today',
-  'input_number.solar_car_energy_total',
-  'input_text.solar_car_session_start',
-  'input_boolean.solar_car_automation_enabled',
+  'number.solar_car_energy_today',
+  'number.solar_car_energy_in_battery_today',
+  'number.solar_car_energy_total',
+  'text.solar_car_session_start',
+  'switch.solar_car_automation_enabled',
 ].filter(Boolean);
 
 function onStateChange(event) {

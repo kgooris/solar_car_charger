@@ -10,13 +10,11 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components import websocket_api
 from homeassistant.components.frontend import async_register_built_in_panel
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_state_change_event,
     async_track_time_change,
 )
-from homeassistant.setup import async_setup_component
 
 from .const import (
     DOMAIN, PANEL_URL, PANEL_TITLE, PANEL_ICON,
@@ -30,14 +28,14 @@ from .storage import async_load_sessions, async_save_session, async_delete_all_s
 
 _LOGGER = logging.getLogger(__name__)
 
-# Helper entity IDs used by both the integration and the frontend panel
-AUTOMATION_BOOL = "input_boolean.solar_car_automation_enabled"
-SESSION_START   = "input_text.solar_car_session_start"
-SESSION_STOP    = "input_text.solar_car_session_stop"
-ENERGY_TODAY    = "input_number.solar_car_energy_today"
-ENERGY_BATT     = "input_number.solar_car_energy_in_battery_today"
-ENERGY_TOTAL    = "input_number.solar_car_energy_total"
-SESSION_MINS    = "input_number.solar_car_session_duration_minutes"
+# Entity IDs managed as native integration platforms (switch / number / text)
+AUTOMATION_BOOL = "switch.solar_car_automation_enabled"
+SESSION_START   = "text.solar_car_session_start"
+SESSION_STOP    = "text.solar_car_session_stop"
+ENERGY_TODAY    = "number.solar_car_energy_today"
+ENERGY_BATT     = "number.solar_car_energy_in_battery_today"
+ENERGY_TOTAL    = "number.solar_car_energy_total"
+SESSION_MINS    = "number.solar_car_session_duration_minutes"
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -54,7 +52,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.async_add_executor_job(_write_config_json, hass, cfg)
     _register_websocket_commands(hass)
     await _register_panel(hass)
-    await _setup_helpers(hass, cfg)
+    await hass.config_entries.async_forward_entry_setups(entry, ["switch", "number", "text"])
 
     unsubs = _setup_automation_logic(hass, cfg, entry)
     hass.data[DOMAIN]["unsubs"] = unsubs
@@ -64,8 +62,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    from homeassistant.components.frontend import async_remove_panel as _fp_remove
     try:
-        hass.components.frontend.async_remove_panel(PANEL_URL)
+        _fp_remove(hass, PANEL_URL)
     except Exception:
         pass
     for unsub in hass.data[DOMAIN].pop("unsubs", []):
@@ -74,60 +73,24 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception:
             pass
     hass.data[DOMAIN].pop("config", None)
+    await hass.config_entries.async_unload_platforms(entry, ["switch", "number", "text"])
     return True
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Verwijder alle helpers die de integratie aanmaakte bij permanente verwijdering.
+    """Toon een melding bij permanente verwijdering van de integratie.
 
-    Deze functie wordt ALLEEN aangeroepen bij manuele verwijdering via de HA-UI,
-    nooit bij een upgrade of herlaad. Helpers met energiedata worden ook verwijderd
-    — de sessiehistoriek in HA storage blijft bewaard.
+    Entities (switch / number / text) worden automatisch door HA verwijderd
+    wanneer de config entry verwijderd wordt — geen handmatige cleanup nodig.
+    De sessiehistoriek in HA storage blijft bewaard.
     """
-    for domain in ("input_boolean", "input_number", "input_text"):
-        await async_setup_component(hass, domain, {})
-
-    all_helpers = [
-        ("input_boolean", AUTOMATION_BOOL),
-        ("input_number",  ENERGY_TODAY),
-        ("input_number",  ENERGY_BATT),
-        ("input_number",  ENERGY_TOTAL),
-        ("input_number",  SESSION_MINS),
-        ("input_number",  "input_number.solar_car_min_surplus"),
-        ("input_number",  "input_number.solar_car_delay_on"),
-        ("input_number",  "input_number.solar_car_delay_off"),
-        ("input_number",  "input_number.solar_car_efficiency"),
-        ("input_number",  "input_number.solar_car_noplug_threshold"),
-        ("input_text",    SESSION_START),
-        ("input_text",    SESSION_STOP),
-    ]
-
-    ent_reg = er.async_get(hass)
-    removed: list[str] = []
-
-    for domain, entity_id in all_helpers:
-        reg_entry = ent_reg.async_get(entity_id)
-        if reg_entry is None:
-            continue
-        collection = hass.data.get(domain)
-        if collection is None:
-            continue
-        try:
-            await collection.async_delete_item(reg_entry.unique_id)
-            removed.append(entity_id)
-            _LOGGER.debug("Helper verwijderd: %s", entity_id)
-        except Exception as err:
-            _LOGGER.warning("Kon %s niet verwijderen: %s", entity_id, err)
-
-    # Persistente melding zodat de gebruiker weet wat er gebeurd is
-    removed_list = "\n".join(f"- `{e}`" for e in removed) if removed else "*(geen gevonden)*"
     await hass.services.async_call(
         "persistent_notification", "create",
         {
             "title": "Solar Car Charger verwijderd",
             "message": (
-                "De integratie is verwijderd en de volgende helpers zijn opgeruimd:\n\n"
-                f"{removed_list}\n\n"
+                "De integratie is verwijderd. Alle bijhorende entiteiten "
+                "(schakelaar, getallen, tekstvelden) zijn automatisch opgeruimd.\n\n"
                 "Je laadsessiehistoriek blijft bewaard in HA storage "
                 f"(`{DOMAIN}_sessions`) en zit in je HA-backups."
             ),
@@ -135,7 +98,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         },
         blocking=False,
     )
-    _LOGGER.info("Solar Car Charger: %d helpers verwijderd", len(removed))
+    _LOGGER.info("Solar Car Charger verwijderd")
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -199,7 +162,12 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
 # ── PANEL ─────────────────────────────────────────────────────────────────────
 
 async def _register_panel(hass: HomeAssistant) -> None:
+    from homeassistant.components.frontend import async_remove_panel
     _LOGGER.debug("Panel registratie gestart — url=/local/solar_car_charger/panel.html")
+    try:
+        async_remove_panel(hass, PANEL_URL)
+    except Exception:
+        pass
     try:
         async_register_built_in_panel(
             hass,
@@ -213,134 +181,6 @@ async def _register_panel(hass: HomeAssistant) -> None:
         _LOGGER.info("Solar Car Charger panel geregistreerd")
     except Exception as err:
         _LOGGER.error("Panel registratie mislukt: %s", err, exc_info=True)
-
-
-# ── HELPERS ───────────────────────────────────────────────────────────────────
-
-async def _setup_helpers(hass: HomeAssistant, cfg: dict) -> None:
-    """Maak alle benodigde helpers aan als ze nog niet bestaan, en stel initiële waarden in."""
-
-    for domain in ("input_boolean", "input_number", "input_text"):
-        await async_setup_component(hass, domain, {})
-
-    # ── aanmaken ─────────────────────────────────────────────────────────────
-
-    await _ensure_boolean(hass, "solar_car_automation_enabled",
-                          "Solar Car Automation Enabled", "mdi:car-electric", initial=True)
-
-    number_defs = [
-        ("solar_car_energy_today",             "Solar Car Energy Today",             0, 999,   0.001, "kWh", 0),
-        ("solar_car_energy_in_battery_today",  "Solar Car Energy In Battery Today",  0, 999,   0.001, "kWh", 0),
-        ("solar_car_energy_total",             "Solar Car Energy Total",             0, 9999,  0.001, "kWh", 0),
-        ("solar_car_session_duration_minutes", "Solar Car Session Duration Minutes", 0, 9999,  1,     "min", 0),
-        ("solar_car_min_surplus",              "Solar Car Min Surplus",              0, 5000,  50,    "W",   cfg.get(CONF_MIN_SURPLUS, DEFAULT_MIN_SURPLUS)),
-        ("solar_car_delay_on",                 "Solar Car Delay On",                 30, 600,  30,    "s",   cfg.get(CONF_DELAY_ON, DEFAULT_DELAY_ON)),
-        ("solar_car_delay_off",                "Solar Car Delay Off",                30, 600,  30,    "s",   cfg.get(CONF_DELAY_OFF, DEFAULT_DELAY_OFF)),
-        ("solar_car_efficiency",               "Solar Car Efficiency",               70, 100,  1,     "%",   cfg.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)),
-        ("solar_car_noplug_threshold",         "Solar Car Noplug Threshold",         0,  200,  10,    "W",   50),
-    ]
-    for slug, name, mn, mx, step, unit, initial in number_defs:
-        await _ensure_number(hass, slug, name, mn, mx, step, unit, initial)
-
-    for slug, name in [
-        ("solar_car_session_start", "Solar Car Session Start"),
-        ("solar_car_session_stop",  "Solar Car Session Stop"),
-    ]:
-        await _ensure_text(hass, slug, name)
-
-    # ── initiële waarden (enkel als entity al actief is in de state machine) ──
-
-    number_values = [
-        (ENERGY_TODAY,                          0),
-        (ENERGY_BATT,                           0),
-        (ENERGY_TOTAL,                          0),
-        (SESSION_MINS,                          0),
-        ("input_number.solar_car_min_surplus",  cfg.get(CONF_MIN_SURPLUS, DEFAULT_MIN_SURPLUS)),
-        ("input_number.solar_car_delay_on",     cfg.get(CONF_DELAY_ON, DEFAULT_DELAY_ON)),
-        ("input_number.solar_car_delay_off",    cfg.get(CONF_DELAY_OFF, DEFAULT_DELAY_OFF)),
-        ("input_number.solar_car_efficiency",   cfg.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)),
-        ("input_number.solar_car_noplug_threshold", 50),
-    ]
-    for entity_id, value in number_values:
-        if hass.states.get(entity_id) is not None:
-            try:
-                await hass.services.async_call(
-                    "input_number", "set_value",
-                    {"entity_id": entity_id, "value": value},
-                    blocking=False,
-                )
-            except Exception:
-                pass
-
-    for entity_id in [SESSION_START, SESSION_STOP]:
-        if hass.states.get(entity_id) is not None:
-            try:
-                await hass.services.async_call(
-                    "input_text", "set_value",
-                    {"entity_id": entity_id, "value": ""},
-                    blocking=False,
-                )
-            except Exception:
-                pass
-
-
-async def _ensure_boolean(
-    hass: HomeAssistant, slug: str, name: str, icon: str, initial: bool = False
-) -> None:
-    """Maak een input_boolean helper aan als die nog niet bestaat."""
-    entity_id = f"input_boolean.{slug}"
-    if hass.states.get(entity_id) is not None:
-        return
-    collection = hass.data.get("input_boolean")
-    if collection is None:
-        _LOGGER.warning("input_boolean niet geladen — kan %s niet aanmaken", entity_id)
-        return
-    try:
-        await collection.async_create_item({"name": name, "icon": icon, "initial": initial})
-        _LOGGER.info("Helper aangemaakt: %s", entity_id)
-    except Exception as err:
-        _LOGGER.error("Kon %s niet aanmaken: %s", entity_id, err)
-
-
-async def _ensure_number(
-    hass: HomeAssistant, slug: str, name: str,
-    min_val: float, max_val: float, step: float, unit: str, initial: float
-) -> None:
-    """Maak een input_number helper aan als die nog niet bestaat."""
-    entity_id = f"input_number.{slug}"
-    if hass.states.get(entity_id) is not None:
-        return
-    collection = hass.data.get("input_number")
-    if collection is None:
-        _LOGGER.warning("input_number niet geladen — kan %s niet aanmaken", entity_id)
-        return
-    try:
-        await collection.async_create_item({
-            "name": name, "min": min_val, "max": max_val,
-            "step": step, "unit_of_measurement": unit,
-            "mode": "box", "initial": initial,
-        })
-        _LOGGER.info("Helper aangemaakt: %s", entity_id)
-    except Exception as err:
-        _LOGGER.error("Kon %s niet aanmaken: %s", entity_id, err)
-
-
-async def _ensure_text(hass: HomeAssistant, slug: str, name: str) -> None:
-    """Maak een input_text helper aan als die nog niet bestaat."""
-    entity_id = f"input_text.{slug}"
-    if hass.states.get(entity_id) is not None:
-        return
-    collection = hass.data.get("input_text")
-    if collection is None:
-        _LOGGER.warning("input_text niet geladen — kan %s niet aanmaken", entity_id)
-        return
-    try:
-        await collection.async_create_item({
-            "name": name, "min": 0, "max": 255, "mode": "text",
-        })
-        _LOGGER.info("Helper aangemaakt: %s", entity_id)
-    except Exception as err:
-        _LOGGER.error("Kon %s niet aanmaken: %s", entity_id, err)
 
 
 # ── AUTOMATION LOGIC ──────────────────────────────────────────────────────────
@@ -368,7 +208,7 @@ def _setup_automation_logic(
 
     def _automation_active() -> bool:
         state = hass.states.get(AUTOMATION_BOOL)
-        # Als de helper niet bestaat, behandelen we automatisering als actief
+        # Als de entity niet bestaat, behandelen we automatisering als actief
         return state is None or state.state == "on"
 
     def _charger_state() -> str:
@@ -415,7 +255,7 @@ def _setup_automation_logic(
             "switch", "turn_on", {"entity_id": switch}, blocking=False
         )
         await hass.services.async_call(
-            "input_text", "set_value",
+            "text", "set_value",
             {"entity_id": SESSION_START, "value": datetime.now().isoformat()},
             blocking=False,
         )
@@ -462,14 +302,14 @@ def _setup_automation_logic(
         )
         stop_iso = datetime.now().isoformat()
         await hass.services.async_call(
-            "input_text", "set_value",
+            "text", "set_value",
             {"entity_id": SESSION_STOP, "value": stop_iso},
             blocking=False,
         )
 
         if duration_mins > 0 and hass.states.get(SESSION_MINS) is not None:
             await hass.services.async_call(
-                "input_number", "set_value",
+                "number", "set_value",
                 {"entity_id": SESSION_MINS, "value": duration_mins},
                 blocking=False,
             )
@@ -477,14 +317,14 @@ def _setup_automation_logic(
         for entity_id in [ENERGY_TODAY, ENERGY_TOTAL]:
             if hass.states.get(entity_id) is not None:
                 await hass.services.async_call(
-                    "input_number", "set_value",
+                    "number", "set_value",
                     {"entity_id": entity_id, "value": round(_float_state(entity_id) + kwh, 3)},
                     blocking=False,
                 )
 
         if hass.states.get(ENERGY_BATT) is not None:
             await hass.services.async_call(
-                "input_number", "set_value",
+                "number", "set_value",
                 {"entity_id": ENERGY_BATT, "value": round(_float_state(ENERGY_BATT) + kwh_batt, 3)},
                 blocking=False,
             )
@@ -538,7 +378,7 @@ def _setup_automation_logic(
         for entity_id in [ENERGY_TODAY, ENERGY_BATT]:
             if hass.states.get(entity_id) is not None:
                 await hass.services.async_call(
-                    "input_number", "set_value",
+                    "number", "set_value",
                     {"entity_id": entity_id, "value": 0},
                     blocking=False,
                 )

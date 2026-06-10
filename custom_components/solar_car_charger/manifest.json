@@ -4,11 +4,7 @@
   "version": "1.4.0",
   "documentation": "https://github.com/kgooris/solar_car_charger",
   "issue_tracker": "https://github.com/kgooris/solar_car_charger/issues",
-  "dependencies": [
-    "input_boolean",
-    "input_number",
-    "input_text"
-  ],
+  "dependencies": [],
   "codeowners": [
     "@kgooris"
   ],
