@@ -144,12 +144,13 @@ async def _register_panel(hass: HomeAssistant) -> None:
             sidebar_icon=PANEL_ICON,
             frontend_url_path=PANEL_URL,
             webcomponent_url="/local/solar_car_charger/panel.html",
+            embed_iframe=True,
             require_admin=False,
             config={},
         )
         _LOGGER.info("Solar Car Charger panel geregistreerd")
     except Exception as err:
-        _LOGGER.warning("Panel registratie mislukt: %s", err)
+        _LOGGER.error("Panel registratie mislukt: %s", err, exc_info=True)
 
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────

@@ -1,0 +1,74 @@
+name: Auto Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Bump version and publish release
+    runs-on: ubuntu-latest
+    # Skip the version-bump commit itself to prevent an infinite loop
+    if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine bump type from commit message
+        id: bump
+        run: |
+          MSG=$(git log -1 --pretty=%B)
+          if echo "$MSG" | grep -qiE '\[major\]|^breaking:|breaking change'; then
+            echo "type=major" >> $GITHUB_OUTPUT
+            echo "Bump type: MAJOR"
+          else
+            echo "type=minor" >> $GITHUB_OUTPUT
+            echo "Bump type: minor"
+          fi
+
+      - name: Compute new version
+        id: version
+        run: |
+          CURRENT=$(jq -r '.version' custom_components/solar_car_charger/manifest.json)
+          IFS='.' read -r MAJ MIN PAT <<< "$CURRENT"
+          if [ "${{ steps.bump.outputs.type }}" = "major" ]; then
+            NEW="$((MAJ + 1)).0.0"
+          else
+            NEW="${MAJ}.$((MIN + 1)).0"
+          fi
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "new=$NEW" >> $GITHUB_OUTPUT
+          echo "Current: $CURRENT  →  New: $NEW"
+
+      - name: Update manifest.json
+        run: |
+          jq --arg v "${{ steps.version.outputs.new }}" '.version = $v' \
+            custom_components/solar_car_charger/manifest.json > /tmp/manifest.json
+          mv /tmp/manifest.json custom_components/solar_car_charger/manifest.json
+
+      - name: Commit, tag and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add custom_components/solar_car_charger/manifest.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
+          git tag "v${{ steps.version.outputs.new }}"
+          git push origin main --follow-tags
+
+      - name: Build release zip
+        run: zip -r solar_car_charger.zip custom_components/solar_car_charger/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.version.outputs.new }}"
+          name: "v${{ steps.version.outputs.new }}"
+          generate_release_notes: true
+          files: solar_car_charger.zip
