@@ -136,6 +136,7 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
 # ── PANEL ─────────────────────────────────────────────────────────────────────
 
 async def _register_panel(hass: HomeAssistant) -> None:
+    _LOGGER.debug("Panel registratie gestart — url=/local/solar_car_charger/panel.html")
     try:
         await async_register_panel(
             hass,
