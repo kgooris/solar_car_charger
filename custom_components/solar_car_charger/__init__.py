@@ -140,7 +140,7 @@ async def _register_panel(hass: HomeAssistant) -> None:
     try:
         await async_register_panel(
             hass,
-            component_name="solar-car-charger-panel",
+            webcomponent_name="solar-car-charger-panel",
             sidebar_title=PANEL_TITLE,
             sidebar_icon=PANEL_ICON,
             frontend_url_path=PANEL_URL,
