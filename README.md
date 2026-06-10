@@ -116,15 +116,6 @@ config/
             └── panel.html
 ```
 
-Copy the panel file so it is accessible as a local resource:
-
-```
-config/
-└── www/
-    └── solar_car_charger/
-        └── panel.html
-```
-
 Restart Home Assistant.
 
 ---
@@ -221,7 +212,7 @@ The full wizard reopens with all current values pre-filled. After saving, the in
 ## Troubleshooting
 
 **The panel does not appear in the sidebar**
-Make sure `panel.html` is present in `config/www/solar_car_charger/panel.html`. The integration writes it there automatically on setup if the source file is present in the integration's `www/` folder.
+The integration copies `panel.html` automatically on setup. If it is missing, check that the integration's `www/panel.html` source file is intact and reload the integration. A browser refresh (F5) is enough — no full HA restart is needed for the panel to appear.
 
 **The charger does not turn on automatically**
 1. Check that `input_boolean.solar_car_automation_enabled` exists and is set to **on**.
@@ -358,15 +349,6 @@ config/
             └── panel.html
 ```
 
-Kopieer het panelbestand zodat het bereikbaar is als lokale resource:
-
-```
-config/
-└── www/
-    └── solar_car_charger/
-        └── panel.html
-```
-
 Herstart Home Assistant.
 
 ---
@@ -461,7 +443,7 @@ De volledige wizard herstart met alle huidige waarden vooringevuld. Na opslaan h
 ## Problemen oplossen
 
 **Het panel verschijnt niet in de zijbalk**
-Controleer of `panel.html` aanwezig is in `config/www/solar_car_charger/panel.html`. De integratie schrijft het bestand daar automatisch bij setup als het aanwezig is in de `www/`-map van de integratie.
+De integratie kopieert `panel.html` automatisch bij setup. Als het ontbreekt, controleer dan of het bronbestand `www/panel.html` in de integratiemap aanwezig is en herlaad de integratie. Een browserverversing (F5) volstaat — een volledige HA-herstart is niet nodig voor het panel.
 
 **De lader schakelt niet automatisch in**
 1. Controleer of `input_boolean.solar_car_automation_enabled` bestaat en **aan** staat.

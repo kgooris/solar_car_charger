@@ -81,13 +81,24 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 
 def _write_config_json(hass: HomeAssistant, cfg: dict) -> None:
-    """Schrijf config.json naar www/solar_car_charger/ zodat het panel de sensor-IDs kent."""
+    """Schrijf config.json naar www/solar_car_charger/ en kopieer panel.html als dat nog niet up-to-date is."""
+    import shutil
+
     www_dir = Path(hass.config.config_dir) / "www" / "solar_car_charger"
     www_dir.mkdir(parents=True, exist_ok=True)
+
+    # config.json — altijd overschrijven zodat sensor-IDs actueel zijn
     config_path = www_dir / "config.json"
     with open(config_path, "w") as f:
         json.dump(cfg, f, indent=2)
     _LOGGER.debug("config.json geschreven naar %s", config_path)
+
+    # panel.html — kopieer vanuit de integratiemap als de versie verschilt
+    src = Path(__file__).parent / "www" / "panel.html"
+    dst = www_dir / "panel.html"
+    if src.exists() and (not dst.exists() or src.read_bytes() != dst.read_bytes()):
+        shutil.copy2(src, dst)
+        _LOGGER.info("panel.html gekopieerd naar %s", dst)
 
 
 # ── WEBSOCKET COMMANDS ────────────────────────────────────────────────────────
