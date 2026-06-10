@@ -9,7 +9,8 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components import websocket_api
-from homeassistant.components.panel_custom import async_register_panel
+from homeassistant.components.frontend import async_register_built_in_panel
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_state_change_event,
@@ -75,6 +76,64 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Verwijder alle helpers die de integratie aanmaakte bij permanente verwijdering.
+
+    Deze functie wordt ALLEEN aangeroepen bij manuele verwijdering via de HA-UI,
+    nooit bij een upgrade of herlaad. Helpers met energiedata worden ook verwijderd
+    — de sessiehistoriek in HA storage blijft bewaard.
+    """
+    all_helpers = [
+        ("input_boolean", AUTOMATION_BOOL),
+        ("input_number",  ENERGY_TODAY),
+        ("input_number",  ENERGY_BATT),
+        ("input_number",  ENERGY_TOTAL),
+        ("input_number",  SESSION_MINS),
+        ("input_number",  "input_number.solar_car_min_surplus"),
+        ("input_number",  "input_number.solar_car_delay_on"),
+        ("input_number",  "input_number.solar_car_delay_off"),
+        ("input_number",  "input_number.solar_car_efficiency"),
+        ("input_number",  "input_number.solar_car_noplug_threshold"),
+        ("input_text",    SESSION_START),
+        ("input_text",    SESSION_STOP),
+    ]
+
+    ent_reg = er.async_get(hass)
+    removed: list[str] = []
+
+    for domain, entity_id in all_helpers:
+        reg_entry = ent_reg.async_get(entity_id)
+        if reg_entry is None:
+            continue
+        collection = hass.data.get(domain)
+        if collection is None:
+            continue
+        try:
+            await collection.async_delete_item(reg_entry.unique_id)
+            removed.append(entity_id)
+            _LOGGER.debug("Helper verwijderd: %s", entity_id)
+        except Exception as err:
+            _LOGGER.warning("Kon %s niet verwijderen: %s", entity_id, err)
+
+    # Persistente melding zodat de gebruiker weet wat er gebeurd is
+    removed_list = "\n".join(f"- `{e}`" for e in removed) if removed else "*(geen gevonden)*"
+    await hass.services.async_call(
+        "persistent_notification", "create",
+        {
+            "title": "Solar Car Charger verwijderd",
+            "message": (
+                "De integratie is verwijderd en de volgende helpers zijn opgeruimd:\n\n"
+                f"{removed_list}\n\n"
+                "Je laadsessiehistoriek blijft bewaard in HA storage "
+                f"(`{DOMAIN}_sessions`) en zit in je HA-backups."
+            ),
+            "notification_id": f"{DOMAIN}_removed",
+        },
+        blocking=False,
+    )
+    _LOGGER.info("Solar Car Charger: %d helpers verwijderd", len(removed))
+
+
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     _LOGGER.info("Solar Car Charger: opties gewijzigd, herladen")
     await hass.config_entries.async_reload(entry.entry_id)
@@ -138,16 +197,14 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
 async def _register_panel(hass: HomeAssistant) -> None:
     _LOGGER.debug("Panel registratie gestart — url=/local/solar_car_charger/panel.html")
     try:
-        await async_register_panel(
+        async_register_built_in_panel(
             hass,
-            webcomponent_name="solar-car-charger-panel",
+            component_name="iframe",
             sidebar_title=PANEL_TITLE,
             sidebar_icon=PANEL_ICON,
             frontend_url_path=PANEL_URL,
-            webcomponent_url="/local/solar_car_charger/panel.html",
-            embed_iframe=True,
+            config={"url": "/local/solar_car_charger/panel.html"},
             require_admin=False,
-            config={},
         )
         _LOGGER.info("Solar Car Charger panel geregistreerd")
     except Exception as err:
@@ -157,23 +214,47 @@ async def _register_panel(hass: HomeAssistant) -> None:
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 
 async def _setup_helpers(hass: HomeAssistant, cfg: dict) -> None:
-    """Stel initiële waarden in voor helper-entities die al bestaan in HA.
+    """Maak alle benodigde helpers aan als ze nog niet bestaan, en stel initiële waarden in."""
 
-    De helpers moeten vooraf aangemaakt zijn via Instellingen → Helpers.
-    Entiteiten die nog niet bestaan worden overgeslagen.
-    """
-    number_helpers = [
-        (ENERGY_TODAY,   0),
-        (ENERGY_BATT,    0),
-        (ENERGY_TOTAL,   0),
-        (SESSION_MINS,   0),
-        ("input_number.solar_car_min_surplus",      cfg.get(CONF_MIN_SURPLUS, DEFAULT_MIN_SURPLUS)),
-        ("input_number.solar_car_delay_on",         cfg.get(CONF_DELAY_ON, DEFAULT_DELAY_ON)),
-        ("input_number.solar_car_delay_off",        cfg.get(CONF_DELAY_OFF, DEFAULT_DELAY_OFF)),
-        ("input_number.solar_car_efficiency",       cfg.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)),
+    # ── aanmaken ─────────────────────────────────────────────────────────────
+
+    await _ensure_boolean(hass, "solar_car_automation_enabled",
+                          "Solar Car Automation Enabled", "mdi:car-electric", initial=True)
+
+    number_defs = [
+        ("solar_car_energy_today",             "Solar Car Energy Today",             0, 999,   0.001, "kWh", 0),
+        ("solar_car_energy_in_battery_today",  "Solar Car Energy In Battery Today",  0, 999,   0.001, "kWh", 0),
+        ("solar_car_energy_total",             "Solar Car Energy Total",             0, 9999,  0.001, "kWh", 0),
+        ("solar_car_session_duration_minutes", "Solar Car Session Duration Minutes", 0, 9999,  1,     "min", 0),
+        ("solar_car_min_surplus",              "Solar Car Min Surplus",              0, 5000,  50,    "W",   cfg.get(CONF_MIN_SURPLUS, DEFAULT_MIN_SURPLUS)),
+        ("solar_car_delay_on",                 "Solar Car Delay On",                 30, 600,  30,    "s",   cfg.get(CONF_DELAY_ON, DEFAULT_DELAY_ON)),
+        ("solar_car_delay_off",                "Solar Car Delay Off",                30, 600,  30,    "s",   cfg.get(CONF_DELAY_OFF, DEFAULT_DELAY_OFF)),
+        ("solar_car_efficiency",               "Solar Car Efficiency",               70, 100,  1,     "%",   cfg.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)),
+        ("solar_car_noplug_threshold",         "Solar Car Noplug Threshold",         0,  200,  10,    "W",   50),
+    ]
+    for slug, name, mn, mx, step, unit, initial in number_defs:
+        await _ensure_number(hass, slug, name, mn, mx, step, unit, initial)
+
+    for slug, name in [
+        ("solar_car_session_start", "Solar Car Session Start"),
+        ("solar_car_session_stop",  "Solar Car Session Stop"),
+    ]:
+        await _ensure_text(hass, slug, name)
+
+    # ── initiële waarden (enkel als entity al actief is in de state machine) ──
+
+    number_values = [
+        (ENERGY_TODAY,                          0),
+        (ENERGY_BATT,                           0),
+        (ENERGY_TOTAL,                          0),
+        (SESSION_MINS,                          0),
+        ("input_number.solar_car_min_surplus",  cfg.get(CONF_MIN_SURPLUS, DEFAULT_MIN_SURPLUS)),
+        ("input_number.solar_car_delay_on",     cfg.get(CONF_DELAY_ON, DEFAULT_DELAY_ON)),
+        ("input_number.solar_car_delay_off",    cfg.get(CONF_DELAY_OFF, DEFAULT_DELAY_OFF)),
+        ("input_number.solar_car_efficiency",   cfg.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)),
         ("input_number.solar_car_noplug_threshold", 50),
     ]
-    for entity_id, value in number_helpers:
+    for entity_id, value in number_values:
         if hass.states.get(entity_id) is not None:
             try:
                 await hass.services.async_call(
@@ -195,12 +276,64 @@ async def _setup_helpers(hass: HomeAssistant, cfg: dict) -> None:
             except Exception:
                 pass
 
-    if hass.states.get(AUTOMATION_BOOL) is None:
-        _LOGGER.warning(
-            "Helper '%s' niet gevonden. Maak hem aan via Instellingen → Helpers "
-            "om de automatisering te kunnen in- of uitschakelen.",
-            AUTOMATION_BOOL,
-        )
+
+async def _ensure_boolean(
+    hass: HomeAssistant, slug: str, name: str, icon: str, initial: bool = False
+) -> None:
+    """Maak een input_boolean helper aan als die nog niet bestaat."""
+    entity_id = f"input_boolean.{slug}"
+    if hass.states.get(entity_id) is not None:
+        return
+    collection = hass.data.get("input_boolean")
+    if collection is None:
+        _LOGGER.warning("input_boolean niet geladen — kan %s niet aanmaken", entity_id)
+        return
+    try:
+        await collection.async_create_item({"name": name, "icon": icon, "initial": initial})
+        _LOGGER.info("Helper aangemaakt: %s", entity_id)
+    except Exception as err:
+        _LOGGER.error("Kon %s niet aanmaken: %s", entity_id, err)
+
+
+async def _ensure_number(
+    hass: HomeAssistant, slug: str, name: str,
+    min_val: float, max_val: float, step: float, unit: str, initial: float
+) -> None:
+    """Maak een input_number helper aan als die nog niet bestaat."""
+    entity_id = f"input_number.{slug}"
+    if hass.states.get(entity_id) is not None:
+        return
+    collection = hass.data.get("input_number")
+    if collection is None:
+        _LOGGER.warning("input_number niet geladen — kan %s niet aanmaken", entity_id)
+        return
+    try:
+        await collection.async_create_item({
+            "name": name, "min": min_val, "max": max_val,
+            "step": step, "unit_of_measurement": unit,
+            "mode": "box", "initial": initial,
+        })
+        _LOGGER.info("Helper aangemaakt: %s", entity_id)
+    except Exception as err:
+        _LOGGER.error("Kon %s niet aanmaken: %s", entity_id, err)
+
+
+async def _ensure_text(hass: HomeAssistant, slug: str, name: str) -> None:
+    """Maak een input_text helper aan als die nog niet bestaat."""
+    entity_id = f"input_text.{slug}"
+    if hass.states.get(entity_id) is not None:
+        return
+    collection = hass.data.get("input_text")
+    if collection is None:
+        _LOGGER.warning("input_text niet geladen — kan %s niet aanmaken", entity_id)
+        return
+    try:
+        await collection.async_create_item({
+            "name": name, "min": 0, "max": 255, "mode": "text",
+        })
+        _LOGGER.info("Helper aangemaakt: %s", entity_id)
+    except Exception as err:
+        _LOGGER.error("Kon %s niet aanmaken: %s", entity_id, err)
 
 
 # ── AUTOMATION LOGIC ──────────────────────────────────────────────────────────

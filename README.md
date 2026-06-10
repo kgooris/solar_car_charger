@@ -149,33 +149,24 @@ All thresholds can be changed later without re-running the wizard: either via **
 
 ---
 
-## Required Helper Entities
+## Helper Entities
 
-The integration reads and writes to the following HA helpers. Create them via **Settings → Helpers** before or after the first setup. The integration will log a warning for any helper that is missing, but will continue to function.
+All required helper entities are created automatically when the integration first loads. No manual setup needed.
 
-### Toggle (input_boolean)
-| Entity ID | Description |
-|-----------|-------------|
-| `input_boolean.solar_car_automation_enabled` | Master switch for the charging automation. Must be **on** for automatic charging to work. |
-
-### Numbers (input_number)
-| Entity ID | Min | Max | Unit | Description |
-|-----------|-----|-----|------|-------------|
-| `input_number.solar_car_energy_today` | 0 | 999 | kWh | Energy charged today |
-| `input_number.solar_car_energy_in_battery_today` | 0 | 999 | kWh | Estimated energy in the battery today (after efficiency loss) |
-| `input_number.solar_car_energy_total` | 0 | 9999 | kWh | Total energy charged all time |
-| `input_number.solar_car_session_duration_minutes` | 0 | 9999 | min | Duration of the last session |
-| `input_number.solar_car_min_surplus` | 0 | 5000 | W | Live-adjustable copy of the minimum surplus threshold |
-| `input_number.solar_car_delay_on` | 30 | 600 | s | Live-adjustable switch-on delay |
-| `input_number.solar_car_delay_off` | 30 | 600 | s | Live-adjustable switch-off delay |
-| `input_number.solar_car_efficiency` | 70 | 100 | % | Live-adjustable charge efficiency |
-| `input_number.solar_car_noplug_threshold` | 0 | 200 | W | Power below which the car is considered not plugged in |
-
-### Text (input_text)
-| Entity ID | Description |
-|-----------|-------------|
-| `input_text.solar_car_session_start` | ISO timestamp of the current or last session start |
-| `input_text.solar_car_session_stop` | ISO timestamp of the last session stop |
+| Entity ID | Type | Description |
+|-----------|------|-------------|
+| `input_boolean.solar_car_automation_enabled` | Toggle | Master switch for the charging automation |
+| `input_number.solar_car_energy_today` | Number | Energy charged today (kWh) |
+| `input_number.solar_car_energy_in_battery_today` | Number | Estimated energy in the battery today (kWh) |
+| `input_number.solar_car_energy_total` | Number | Total energy charged all time (kWh) |
+| `input_number.solar_car_session_duration_minutes` | Number | Duration of the last session (min) |
+| `input_number.solar_car_min_surplus` | Number | Live-adjustable minimum surplus threshold (W) |
+| `input_number.solar_car_delay_on` | Number | Live-adjustable switch-on delay (s) |
+| `input_number.solar_car_delay_off` | Number | Live-adjustable switch-off delay (s) |
+| `input_number.solar_car_efficiency` | Number | Live-adjustable charge efficiency (%) |
+| `input_number.solar_car_noplug_threshold` | Number | "Not plugged in" detection threshold (W) |
+| `input_text.solar_car_session_start` | Text | ISO timestamp of the current session start |
+| `input_text.solar_car_session_stop` | Text | ISO timestamp of the last session stop |
 
 ---
 
@@ -382,33 +373,24 @@ Alle drempelwaarden zijn later aanpasbaar zonder de wizard opnieuw te doorlopen:
 
 ---
 
-## Benodigde helper-entities
+## Helper-entities
 
-De integratie leest en schrijft naar de volgende HA-helpers. Maak ze aan via **Instellingen → Helpers** voor of na de eerste installatie. De integratie logt een waarschuwing voor ontbrekende helpers maar blijft gewoon werken.
+Alle benodigde helper-entities worden automatisch aangemaakt bij de eerste keer laden van de integratie. Geen manuele stap vereist.
 
-### Schakelaar (input_boolean)
-| Entity ID | Omschrijving |
-|-----------|--------------|
-| `input_boolean.solar_car_automation_enabled` | Hoofdschakelaar voor de laadautomatisering. Moet **aan** staan om automatisch te laden. |
-
-### Getallen (input_number)
-| Entity ID | Min | Max | Eenheid | Omschrijving |
-|-----------|-----|-----|---------|--------------|
-| `input_number.solar_car_energy_today` | 0 | 999 | kWh | Geladen energie vandaag |
-| `input_number.solar_car_energy_in_battery_today` | 0 | 999 | kWh | Geschatte energie in de accu vandaag |
-| `input_number.solar_car_energy_total` | 0 | 9999 | kWh | Totaal geladen energie ooit |
-| `input_number.solar_car_session_duration_minutes` | 0 | 9999 | min | Duur van de laatste sessie |
-| `input_number.solar_car_min_surplus` | 0 | 5000 | W | Live aanpasbare kopie van de overschotdrempel |
-| `input_number.solar_car_delay_on` | 30 | 600 | s | Live aanpasbare inschakelvertraging |
-| `input_number.solar_car_delay_off` | 30 | 600 | s | Live aanpasbare uitschakelvertraging |
-| `input_number.solar_car_efficiency` | 70 | 100 | % | Live aanpasbare laadefficiëntie |
-| `input_number.solar_car_noplug_threshold` | 0 | 200 | W | Vermogen waaronder auto als niet ingeplugd wordt beschouwd |
-
-### Tekst (input_text)
-| Entity ID | Omschrijving |
-|-----------|--------------|
-| `input_text.solar_car_session_start` | ISO-tijdstip van huidige of laatste sessiestart |
-| `input_text.solar_car_session_stop` | ISO-tijdstip van laatste sessiestop |
+| Entity ID | Type | Omschrijving |
+|-----------|------|--------------|
+| `input_boolean.solar_car_automation_enabled` | Schakelaar | Hoofdschakelaar voor de laadautomatisering |
+| `input_number.solar_car_energy_today` | Getal | Geladen energie vandaag (kWh) |
+| `input_number.solar_car_energy_in_battery_today` | Getal | Geschatte energie in de accu vandaag (kWh) |
+| `input_number.solar_car_energy_total` | Getal | Totaal geladen energie ooit (kWh) |
+| `input_number.solar_car_session_duration_minutes` | Getal | Duur van de laatste sessie (min) |
+| `input_number.solar_car_min_surplus` | Getal | Live aanpasbare overschotdrempel (W) |
+| `input_number.solar_car_delay_on` | Getal | Live aanpasbare inschakelvertraging (s) |
+| `input_number.solar_car_delay_off` | Getal | Live aanpasbare uitschakelvertraging (s) |
+| `input_number.solar_car_efficiency` | Getal | Live aanpasbare laadefficiëntie (%) |
+| `input_number.solar_car_noplug_threshold` | Getal | Drempel voor detectie "niet ingeplugd" (W) |
+| `input_text.solar_car_session_start` | Tekst | ISO-tijdstip van huidige of laatste sessiestart |
+| `input_text.solar_car_session_stop` | Tekst | ISO-tijdstip van laatste sessiestop |
 
 ---
 
