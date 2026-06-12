@@ -1,6 +1,6 @@
 """Number platform: energy counters and adjustable settings."""
 from homeassistant.components.number import NumberEntity, NumberMode
-from homeassistant.helpers.restore_state import RestoreNumber
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
     DOMAIN,
@@ -24,7 +24,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ])
 
 
-class SolarCarNumber(RestoreNumber):
+class SolarCarNumber(NumberEntity, RestoreEntity):
     _attr_has_entity_name = False
     _attr_mode = NumberMode.BOX
 
@@ -36,6 +36,7 @@ class SolarCarNumber(RestoreNumber):
         self._attr_native_step = step
         self._attr_native_unit_of_measurement = unit
         self._attr_native_value = initial
+        self._initial = initial
 
     async def async_set_native_value(self, value: float) -> None:
         self._attr_native_value = value
@@ -43,6 +44,9 @@ class SolarCarNumber(RestoreNumber):
 
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
-        last = await self.async_get_last_number_data()
-        if last and last.native_value is not None:
-            self._attr_native_value = last.native_value
+        last = await self.async_get_last_state()
+        if last and last.state not in (None, "unknown", "unavailable"):
+            try:
+                self._attr_native_value = float(last.state)
+            except ValueError:
+                self._attr_native_value = self._initial
