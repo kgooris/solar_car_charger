@@ -420,6 +420,7 @@ async function onSwitchChange(newState, oldState) {
 // UI — OVERZICHT TAB
 // ─────────────────────────────────────────────
 async function renderOverview() {
+  const allSessions = await getSessions();
   const v = computeValues();
   const chargerOn = getState(cfg.charger_switch).state === 'on';
   const startIso = getState('text.solar_charger_session_start').state;
@@ -472,7 +473,7 @@ async function renderOverview() {
       </div>`;
   } else {
     // Toon laatste sessie uit log
-    const sessions = getSessions();
+    const sessions = allSessions;
     if (sessions.length > 0) {
       const last = sessions[0];
       bannerHtml = `
@@ -495,7 +496,7 @@ async function renderOverview() {
   }
 
   // Logboek laatste 10
-  const sessions = (await getSessions()).slice(0, 10);
+  const sessions = allSessions.slice(0, 10);
   const logRows = sessions.length === 0
     ? `<tr><td colspan="8" class="empty-log">Nog geen laadsessies geregistreerd</td></tr>`
     : sessions.map(s => `<tr>
@@ -575,7 +576,7 @@ async function renderOverview() {
       </div>
       <div class="stat">
         <div class="stat-lbl">Sessies vandaag</div>
-        <div class="stat-val">${getSessions().filter(s=>{
+        <div class="stat-val">${allSessions.filter(s=>{
           const d = new Date(s.startIso); const n = new Date();
           return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();
         }).length}</div>
