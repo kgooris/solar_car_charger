@@ -7,8 +7,8 @@ from .const import DOMAIN
 
 async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities([
-        SolarCarText("solar_charger_session_start", "SolarCharge Session Start"),
-        SolarCarText("solar_charger_session_stop",  "SolarCharge Session Stop"),
+        SolarCarText("solar_charger_session_start", "Solar Charger Session Start"),
+        SolarCarText("solar_charger_session_stop",  "Solar Charger Session Stop"),
     ])
 
 
