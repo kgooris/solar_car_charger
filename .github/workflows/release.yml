@@ -60,6 +60,7 @@ jobs:
           git add custom_components/solar_charger/manifest.json
           git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
           git tag "v${{ steps.version.outputs.new }}"
+          git pull --rebase origin main
           git push origin main --follow-tags
 
       - name: Build release zip
