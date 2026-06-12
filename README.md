@@ -1,4 +1,4 @@
-# Solar Car Charger and Monitor
+# SolarCharge
 
 🇬🇧 [English](#english) &nbsp;|&nbsp; 🇧🇪 [Nederlands](#nederlands)
 
@@ -67,7 +67,7 @@ A custom panel appears directly in the Home Assistant sidebar with three tabs:
 - "Charging stopped" notification with duration and kWh charged
 
 ### Daily midnight reset
-- `solar_car_energy_today` and `solar_car_energy_in_battery_today` reset to 0 at midnight automatically
+- `solar_charger_energy_today` and `solar_charger_energy_in_battery_today` reset to 0 at midnight automatically
 
 ---
 
@@ -92,18 +92,18 @@ A custom panel appears directly in the Home Assistant sidebar with three tabs:
 
 1. Open HACS in Home Assistant
 2. Go to **Integrations → ⋮ → Custom repositories**
-3. Add `https://github.com/kgooris/solar_car_charger` as category **Integration**
-4. Search for **Solar Car Charger and Monitor** and install
+3. Add `https://github.com/kgooris/solar_charger` as category **Integration**
+4. Search for **SolarCharge** and install
 5. Restart Home Assistant
 
 ### Manual installation
 
-Copy the `custom_components/solar_car_charger/` folder into your HA config directory:
+Copy the `custom_components/solar_charger/` folder into your HA config directory:
 
 ```
 config/
 └── custom_components/
-    └── solar_car_charger/
+    └── solar_charger/
         ├── __init__.py
         ├── config_flow.py
         ├── const.py
@@ -122,7 +122,7 @@ Restart Home Assistant.
 
 ## Configuration
 
-Go to **Settings → Integrations → + Add Integration → Solar Car Charger and Monitor**.
+Go to **Settings → Integrations → + Add Integration → SolarCharge**.
 
 The wizard runs in four steps:
 
@@ -145,28 +145,28 @@ Select the current output power sensor of your solar inverter (always positive d
 | Switch-off delay | 180 s | Deficit must last this long before turning off |
 | Charge efficiency | 90 % | Energy loss between the wall socket and the car battery |
 
-All thresholds can be changed later without re-running the wizard: either via **Settings → Integrations → Solar Car Charger → Options**, or directly in the dashboard Settings tab.
+All thresholds can be changed later without re-running the wizard: either via **Settings → Integrations → SolarCharge → Options**, or directly in the dashboard Settings tab.
 
 ---
 
-## Helper Entities
+## Entities
 
-All required helper entities are created automatically when the integration first loads. No manual setup needed.
+All entities are created automatically as native integration entities when the integration first loads. No manual setup needed.
 
 | Entity ID | Type | Description |
 |-----------|------|-------------|
-| `input_boolean.solar_car_automation_enabled` | Toggle | Master switch for the charging automation |
-| `input_number.solar_car_energy_today` | Number | Energy charged today (kWh) |
-| `input_number.solar_car_energy_in_battery_today` | Number | Estimated energy in the battery today (kWh) |
-| `input_number.solar_car_energy_total` | Number | Total energy charged all time (kWh) |
-| `input_number.solar_car_session_duration_minutes` | Number | Duration of the last session (min) |
-| `input_number.solar_car_min_surplus` | Number | Live-adjustable minimum surplus threshold (W) |
-| `input_number.solar_car_delay_on` | Number | Live-adjustable switch-on delay (s) |
-| `input_number.solar_car_delay_off` | Number | Live-adjustable switch-off delay (s) |
-| `input_number.solar_car_efficiency` | Number | Live-adjustable charge efficiency (%) |
-| `input_number.solar_car_noplug_threshold` | Number | "Not plugged in" detection threshold (W) |
-| `input_text.solar_car_session_start` | Text | ISO timestamp of the current session start |
-| `input_text.solar_car_session_stop` | Text | ISO timestamp of the last session stop |
+| `switch.solar_charger_automation_enabled` | Switch | Master switch for the charging automation |
+| `number.solar_charger_energy_today` | Number | Energy charged today (kWh) |
+| `number.solar_charger_energy_in_battery_today` | Number | Estimated energy in the battery today (kWh) |
+| `number.solar_charger_energy_total` | Number | Total energy charged all time (kWh) |
+| `number.solar_charger_session_duration_minutes` | Number | Duration of the last session (min) |
+| `number.solar_charger_min_surplus` | Number | Live-adjustable minimum surplus threshold (W) |
+| `number.solar_charger_delay_on` | Number | Live-adjustable switch-on delay (s) |
+| `number.solar_charger_delay_off` | Number | Live-adjustable switch-off delay (s) |
+| `number.solar_charger_efficiency` | Number | Live-adjustable charge efficiency (%) |
+| `number.solar_charger_noplug_threshold` | Number | "Not plugged in" detection threshold (W) |
+| `text.solar_charger_session_start` | Text | ISO timestamp of the current session start |
+| `text.solar_charger_session_stop` | Text | ISO timestamp of the last session stop |
 
 ---
 
@@ -194,7 +194,7 @@ All timers and subscriptions are properly cancelled when the integration is unlo
 
 To change sensors or thresholds at any time:
 
-**Settings → Integrations → Solar Car Charger and Monitor → Options**
+**Settings → Integrations → SolarCharge → Options**
 
 The full wizard reopens with all current values pre-filled. After saving, the integration reloads automatically and all timers restart with the new settings.
 
@@ -206,9 +206,9 @@ The full wizard reopens with all current values pre-filled. After saving, the in
 The integration copies `panel.html` automatically on setup. If it is missing, check that the integration's `www/panel.html` source file is intact and reload the integration. A browser refresh (F5) is enough — no full HA restart is needed for the panel to appear.
 
 **The charger does not turn on automatically**
-1. Check that `input_boolean.solar_car_automation_enabled` exists and is set to **on**.
+1. Check that `switch.solar_charger_automation_enabled` exists and is set to **on**.
 2. Verify that your P1 sensor is reporting negative values when your solar panels are producing more than the house consumes.
-3. Check the Home Assistant logs for `Solar Car` messages to see if the surplus threshold is being detected.
+3. Check the Home Assistant logs for `SolarCharge` messages to see if the surplus threshold is being detected.
 
 **kWh tracking seems inaccurate**
 If your smart switch has a built-in power meter, make sure you configured it in step 3 of the wizard. Without it, the integration estimates kWh from `max_charge_kw × session_duration`, which does not account for partial charging speed.
@@ -228,7 +228,7 @@ MIT — see [LICENSE](LICENSE) for details.
 
 <a name="nederlands"></a>
 
-# Solar Car Charger and Monitor — Nederlandstalige versie
+# SolarCharge — Nederlandstalige versie
 
 Een Home Assistant custom integratie die je elektrische wagen automatisch oplaadt met zonne-energie-overschot — met een live dashboard om elke laadsessie te monitoren en bij te houden.
 
@@ -291,7 +291,7 @@ Een custom panel verschijnt direct in de Home Assistant zijbalk met drie tabblad
 - "Auto laden gestopt" melding met duur en geladen kWh
 
 ### Dagelijkse reset om middernacht
-- `solar_car_energy_today` en `solar_car_energy_in_battery_today` worden automatisch om middernacht op 0 gezet
+- `solar_charger_energy_today` en `solar_charger_energy_in_battery_today` worden automatisch om middernacht op 0 gezet
 
 ---
 
@@ -316,18 +316,18 @@ Een custom panel verschijnt direct in de Home Assistant zijbalk met drie tabblad
 
 1. Open HACS in Home Assistant
 2. Ga naar **Integraties → ⋮ → Aangepaste opslagplaatsen**
-3. Voeg `https://github.com/kgooris/solar_car_charger` toe als categorie **Integratie**
-4. Zoek op **Solar Car Charger and Monitor** en installeer
+3. Voeg `https://github.com/kgooris/solar_charger` toe als categorie **Integratie**
+4. Zoek op **SolarCharge** en installeer
 5. Herstart Home Assistant
 
 ### Handmatige installatie
 
-Kopieer de map `custom_components/solar_car_charger/` naar je HA-configuratiemap:
+Kopieer de map `custom_components/solar_charger/` naar je HA-configuratiemap:
 
 ```
 config/
 └── custom_components/
-    └── solar_car_charger/
+    └── solar_charger/
         ├── __init__.py
         ├── config_flow.py
         ├── const.py
@@ -346,7 +346,7 @@ Herstart Home Assistant.
 
 ## Configuratie
 
-Ga naar **Instellingen → Integraties → + Integratie toevoegen → Solar Car Charger and Monitor**.
+Ga naar **Instellingen → Integraties → + Integratie toevoegen → SolarCharge**.
 
 De wizard doorloopt vier stappen:
 
@@ -369,28 +369,28 @@ Selecteer de actuele vermogensensor van je omvormer (altijd positief overdag, 0 
 | Uitschakelvertraging | 180 s | Tekort moet zo lang aanhouden voor uitschakelen |
 | Laadefficiëntie | 90 % | Energieverlies tussen stopcontact en accu van de auto |
 
-Alle drempelwaarden zijn later aanpasbaar zonder de wizard opnieuw te doorlopen: via **Instellingen → Integraties → Solar Car Charger → Opties**, of rechtstreeks in het tabblad Instellingen van het dashboard.
+Alle drempelwaarden zijn later aanpasbaar zonder de wizard opnieuw te doorlopen: via **Instellingen → Integraties → SolarCharge → Opties**, of rechtstreeks in het tabblad Instellingen van het dashboard.
 
 ---
 
-## Helper-entities
+## Entities
 
-Alle benodigde helper-entities worden automatisch aangemaakt bij de eerste keer laden van de integratie. Geen manuele stap vereist.
+Alle entities worden automatisch aangemaakt als native integratie-entities bij de eerste keer laden. Geen manuele stap vereist.
 
 | Entity ID | Type | Omschrijving |
 |-----------|------|--------------|
-| `input_boolean.solar_car_automation_enabled` | Schakelaar | Hoofdschakelaar voor de laadautomatisering |
-| `input_number.solar_car_energy_today` | Getal | Geladen energie vandaag (kWh) |
-| `input_number.solar_car_energy_in_battery_today` | Getal | Geschatte energie in de accu vandaag (kWh) |
-| `input_number.solar_car_energy_total` | Getal | Totaal geladen energie ooit (kWh) |
-| `input_number.solar_car_session_duration_minutes` | Getal | Duur van de laatste sessie (min) |
-| `input_number.solar_car_min_surplus` | Getal | Live aanpasbare overschotdrempel (W) |
-| `input_number.solar_car_delay_on` | Getal | Live aanpasbare inschakelvertraging (s) |
-| `input_number.solar_car_delay_off` | Getal | Live aanpasbare uitschakelvertraging (s) |
-| `input_number.solar_car_efficiency` | Getal | Live aanpasbare laadefficiëntie (%) |
-| `input_number.solar_car_noplug_threshold` | Getal | Drempel voor detectie "niet ingeplugd" (W) |
-| `input_text.solar_car_session_start` | Tekst | ISO-tijdstip van huidige of laatste sessiestart |
-| `input_text.solar_car_session_stop` | Tekst | ISO-tijdstip van laatste sessiestop |
+| `switch.solar_charger_automation_enabled` | Schakelaar | Hoofdschakelaar voor de laadautomatisering |
+| `number.solar_charger_energy_today` | Getal | Geladen energie vandaag (kWh) |
+| `number.solar_charger_energy_in_battery_today` | Getal | Geschatte energie in de accu vandaag (kWh) |
+| `number.solar_charger_energy_total` | Getal | Totaal geladen energie ooit (kWh) |
+| `number.solar_charger_session_duration_minutes` | Getal | Duur van de laatste sessie (min) |
+| `number.solar_charger_min_surplus` | Getal | Live aanpasbare overschotdrempel (W) |
+| `number.solar_charger_delay_on` | Getal | Live aanpasbare inschakelvertraging (s) |
+| `number.solar_charger_delay_off` | Getal | Live aanpasbare uitschakelvertraging (s) |
+| `number.solar_charger_efficiency` | Getal | Live aanpasbare laadefficiëntie (%) |
+| `number.solar_charger_noplug_threshold` | Getal | Drempel voor detectie "niet ingeplugd" (W) |
+| `text.solar_charger_session_start` | Tekst | ISO-tijdstip van huidige of laatste sessiestart |
+| `text.solar_charger_session_stop` | Tekst | ISO-tijdstip van laatste sessiestop |
 
 ---
 
@@ -416,7 +416,7 @@ Alle timers en abonnementen worden netjes geannuleerd wanneer de integratie word
 
 ## Herconfiguratie
 
-Ga naar: **Instellingen → Integraties → Solar Car Charger and Monitor → Opties**
+Ga naar: **Instellingen → Integraties → SolarCharge → Opties**
 
 De volledige wizard herstart met alle huidige waarden vooringevuld. Na opslaan herlaadt de integratie automatisch en starten alle timers opnieuw met de nieuwe instellingen.
 
@@ -428,9 +428,9 @@ De volledige wizard herstart met alle huidige waarden vooringevuld. Na opslaan h
 De integratie kopieert `panel.html` automatisch bij setup. Als het ontbreekt, controleer dan of het bronbestand `www/panel.html` in de integratiemap aanwezig is en herlaad de integratie. Een browserverversing (F5) volstaat — een volledige HA-herstart is niet nodig voor het panel.
 
 **De lader schakelt niet automatisch in**
-1. Controleer of `input_boolean.solar_car_automation_enabled` bestaat en **aan** staat.
+1. Controleer of `switch.solar_charger_automation_enabled` bestaat en **aan** staat.
 2. Verifieer dat je P1-sensor negatieve waarden rapporteert wanneer je zonnepanelen meer produceren dan het huis verbruikt.
-3. Bekijk de Home Assistant logs op berichten met `Solar Car` om te zien of de overschotdrempel gedetecteerd wordt.
+3. Bekijk de Home Assistant logs op berichten met `SolarCharge` om te zien of de overschotdrempel gedetecteerd wordt.
 
 **kWh-registratie lijkt onnauwkeurig**
 Als je slimme schakelaar een ingebouwde energiemeter heeft, controleer dan of je die in stap 3 van de wizard hebt geconfigureerd. Zonder energiemeter schat de integratie kWh op basis van `max_laadvermogen × sessieduur`, wat geen rekening houdt met variabel laadvermogen.

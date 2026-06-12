@@ -1,4 +1,4 @@
-"""Solar Car Charger — custom integration."""
+"""SolarCharge — custom integration."""
 from __future__ import annotations
 import json
 import logging
@@ -29,13 +29,13 @@ from .storage import async_load_sessions, async_save_session, async_delete_all_s
 _LOGGER = logging.getLogger(__name__)
 
 # Entity IDs managed as native integration platforms (switch / number / text)
-AUTOMATION_BOOL = "switch.solar_car_automation_enabled"
-SESSION_START   = "text.solar_car_session_start"
-SESSION_STOP    = "text.solar_car_session_stop"
-ENERGY_TODAY    = "number.solar_car_energy_today"
-ENERGY_BATT     = "number.solar_car_energy_in_battery_today"
-ENERGY_TOTAL    = "number.solar_car_energy_total"
-SESSION_MINS    = "number.solar_car_session_duration_minutes"
+AUTOMATION_BOOL = "switch.solar_charger_automation_enabled"
+SESSION_START   = "text.solar_charger_session_start"
+SESSION_STOP    = "text.solar_charger_session_stop"
+ENERGY_TODAY    = "number.solar_charger_energy_today"
+ENERGY_BATT     = "number.solar_charger_energy_in_battery_today"
+ENERGY_TOTAL    = "number.solar_charger_energy_total"
+SESSION_MINS    = "number.solar_charger_session_duration_minutes"
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -87,7 +87,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await hass.services.async_call(
         "persistent_notification", "create",
         {
-            "title": "Solar Car Charger verwijderd",
+            "title": "SolarCharge verwijderd",
             "message": (
                 "De integratie is verwijderd. Alle bijhorende entiteiten "
                 "(schakelaar, getallen, tekstvelden) zijn automatisch opgeruimd.\n\n"
@@ -98,19 +98,19 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         },
         blocking=False,
     )
-    _LOGGER.info("Solar Car Charger verwijderd")
+    _LOGGER.info("SolarCharge verwijderd")
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    _LOGGER.info("Solar Car Charger: opties gewijzigd, herladen")
+    _LOGGER.info("SolarCharge: opties gewijzigd, herladen")
     await hass.config_entries.async_reload(entry.entry_id)
 
 
 def _write_config_json(hass: HomeAssistant, cfg: dict) -> None:
-    """Schrijf config.json naar www/solar_car_charger/ en kopieer panel.html als dat nog niet up-to-date is."""
+    """Schrijf config.json naar www/solar_charger/ en kopieer panel.html als dat nog niet up-to-date is."""
     import shutil
 
-    www_dir = Path(hass.config.config_dir) / "www" / "solar_car_charger"
+    www_dir = Path(hass.config.config_dir) / "www" / "solar_charger"
     www_dir.mkdir(parents=True, exist_ok=True)
 
     # config.json — altijd overschrijven zodat sensor-IDs actueel zijn
@@ -163,7 +163,7 @@ def _register_websocket_commands(hass: HomeAssistant) -> None:
 
 async def _register_panel(hass: HomeAssistant) -> None:
     from homeassistant.components.frontend import async_remove_panel
-    _LOGGER.debug("Panel registratie gestart — url=/local/solar_car_charger/panel.html")
+    _LOGGER.debug("Panel registratie gestart — url=/local/solar_charger/panel.html")
     try:
         async_remove_panel(hass, PANEL_URL)
     except Exception:
@@ -175,10 +175,10 @@ async def _register_panel(hass: HomeAssistant) -> None:
             sidebar_title=PANEL_TITLE,
             sidebar_icon=PANEL_ICON,
             frontend_url_path=PANEL_URL,
-            config={"url": "/local/solar_car_charger/panel.html"},
+            config={"url": "/local/solar_charger/panel.html"},
             require_admin=False,
         )
-        _LOGGER.info("Solar Car Charger panel geregistreerd")
+        _LOGGER.info("SolarCharge panel geregistreerd")
     except Exception as err:
         _LOGGER.error("Panel registratie mislukt: %s", err, exc_info=True)
 
@@ -246,7 +246,7 @@ def _setup_automation_logic(
         if not _automation_active():
             return
         if _p1_watts() > -min_surplus:
-            _LOGGER.debug("Solar Car: turn-on timer verlopen maar overschot verdwenen")
+            _LOGGER.debug("SolarCharge: turn-on timer verlopen maar overschot verdwenen")
             return
         if _charger_state() == "on":
             return
@@ -268,7 +268,7 @@ def _setup_automation_logic(
             },
             blocking=False,
         )
-        _LOGGER.info("Solar Car: lader ingeschakeld (overschot %s W)", surplus_w)
+        _LOGGER.info("SolarCharge: lader ingeschakeld (overschot %s W)", surplus_w)
 
     async def _do_turn_off(now=None) -> None:
         """Definitieve check, sessie-energie bijwerken en lader uitschakelen."""
@@ -276,7 +276,7 @@ def _setup_automation_logic(
         if not _automation_active():
             return
         if _p1_watts() <= -min_surplus:
-            _LOGGER.debug("Solar Car: turn-off timer verlopen maar overschot hersteld")
+            _LOGGER.debug("SolarCharge: turn-off timer verlopen maar overschot hersteld")
             return
         if _charger_state() == "off":
             return
@@ -337,7 +337,7 @@ def _setup_automation_logic(
             },
             blocking=False,
         )
-        _LOGGER.info("Solar Car: lader uitgeschakeld (%s min, %s kWh)", duration_mins, kwh)
+        _LOGGER.info("SolarCharge: lader uitgeschakeld (%s min, %s kWh)", duration_mins, kwh)
 
     # ── event handlers ────────────────────────────────────────────────────────
 
@@ -359,19 +359,19 @@ def _setup_automation_logic(
             if _timers["off"]:
                 _timers["off"]()
                 _timers["off"] = None
-                _LOGGER.debug("Solar Car: turn-off timer geannuleerd (overschot hersteld)")
+                _LOGGER.debug("SolarCharge: turn-off timer geannuleerd (overschot hersteld)")
             if not charger_on and _timers["on"] is None:
                 _timers["on"] = async_call_later(hass, delay_on, _do_turn_on)
-                _LOGGER.debug("Solar Car: turn-on gepland over %s s (overschot %s W)", delay_on, round(-p1))
+                _LOGGER.debug("SolarCharge: turn-on gepland over %s s (overschot %s W)", delay_on, round(-p1))
         else:
             # Onvoldoende overschot
             if _timers["on"]:
                 _timers["on"]()
                 _timers["on"] = None
-                _LOGGER.debug("Solar Car: turn-on timer geannuleerd (overschot weg)")
+                _LOGGER.debug("SolarCharge: turn-on timer geannuleerd (overschot weg)")
             if charger_on and _timers["off"] is None:
                 _timers["off"] = async_call_later(hass, delay_off, _do_turn_off)
-                _LOGGER.debug("Solar Car: turn-off gepland over %s s", delay_off)
+                _LOGGER.debug("SolarCharge: turn-off gepland over %s s", delay_off)
 
     async def _daily_reset(now: datetime) -> None:
         """Reset dagelijkse energie-tellers om middernacht."""
@@ -382,7 +382,7 @@ def _setup_automation_logic(
                     {"entity_id": entity_id, "value": 0},
                     blocking=False,
                 )
-        _LOGGER.info("Solar Car: dagelijkse reset uitgevoerd")
+        _LOGGER.info("SolarCharge: dagelijkse reset uitgevoerd")
 
     def _cancel_timers() -> None:
         """Cancel eventueel nog lopende delay-timers bij unload."""
@@ -397,7 +397,7 @@ def _setup_automation_logic(
     unsub_midnight = async_track_time_change(hass, _daily_reset, hour=0, minute=0, second=0)
 
     _LOGGER.info(
-        "Solar Car automatisering actief — min_surplus=%sW delay_on=%ss delay_off=%ss",
+        "SolarCharge automatisering actief — min_surplus=%sW delay_on=%ss delay_off=%ss",
         min_surplus, delay_on, delay_off,
     )
     return [unsub_p1, unsub_midnight, _cancel_timers]

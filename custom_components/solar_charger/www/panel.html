@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Solar Car Charger</title>
+<title>SolarCharge</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -164,7 +164,7 @@ let cfg = {};
 
 async function loadConfig() {
   try {
-    const r = await fetch('/local/solar_car_charger/config.json');
+    const r = await fetch('/local/solar_charger/config.json');
     if (r.ok) cfg = await r.json();
   } catch(e) {
     console.warn('config.json niet gevonden, gebruik defaults');
@@ -292,7 +292,7 @@ let prevSwitchState = null;
 
 // ─────────────────────────────────────────────
 // SESSIE OPSLAG via HA Storage API (WebSocket)
-// Data bewaard in config/.storage/solar_car_charger_sessions
+// Data bewaard in config/.storage/solar_charger_sessions
 // Beschikbaar op elk apparaat, in HA backups
 // ─────────────────────────────────────────────
 let _sessionsCache = null;
@@ -301,7 +301,7 @@ async function getSessions() {
   // Gebruik cache als beschikbaar (wordt geïnvalideerd bij opslaan)
   if (_sessionsCache !== null) return _sessionsCache;
   try {
-    const r = await ha.send({ type: 'solar_car_charger/get_sessions' });
+    const r = await ha.send({ type: 'solar_charger/get_sessions' });
     _sessionsCache = r.result?.sessions || [];
   } catch(e) {
     console.warn('Sessies ophalen mislukt:', e);
@@ -312,7 +312,7 @@ async function getSessions() {
 
 async function saveSessionToHA(session) {
   try {
-    await ha.send({ type: 'solar_car_charger/save_session', session });
+    await ha.send({ type: 'solar_charger/save_session', session });
     _sessionsCache = null; // Invalideer cache
   } catch(e) {
     console.error('Sessie opslaan mislukt:', e);
@@ -381,7 +381,7 @@ async function onSwitchChange(newState, oldState) {
     activeSession = {
       startIso: new Date().toISOString(),
       startSurplus: Math.round(-v.p1Raw), // overschot bij start
-      manual: getState('switch.solar_car_automation_enabled').state === 'off',
+      manual: getState('switch.solar_charger_automation_enabled').state === 'off',
     };
   }
 
@@ -389,7 +389,7 @@ async function onSwitchChange(newState, oldState) {
     // Sessie gestopt — opslaan
     const stopIso = new Date().toISOString();
     const durMins = Math.round((new Date(stopIso) - new Date(activeSession.startIso)) / 60000);
-    const kwhMuur = getFloat('number.solar_car_energy_today', 0);
+    const kwhMuur = getFloat('number.solar_charger_energy_today', 0);
     const eff = (cfg.efficiency_percent || 90) / 100;
     // Lees kWh van de lader meter als beschikbaar
     const chargerKwh = cfg.charger_power_sensor
@@ -422,10 +422,10 @@ async function onSwitchChange(newState, oldState) {
 async function renderOverview() {
   const v = computeValues();
   const chargerOn = getState(cfg.charger_switch).state === 'on';
-  const startIso = getState('text.solar_car_session_start').state;
-  const energyToday = getFloat('number.solar_car_energy_today', 0);
-  const energyBatt  = getFloat('number.solar_car_energy_in_battery_today', 0);
-  const energyTotal = getFloat('number.solar_car_energy_total', 0);
+  const startIso = getState('text.solar_charger_session_start').state;
+  const energyToday = getFloat('number.solar_charger_energy_today', 0);
+  const energyBatt  = getFloat('number.solar_charger_energy_in_battery_today', 0);
+  const energyTotal = getFloat('number.solar_charger_energy_total', 0);
 
   // Sessie live kWh
   let sessionKwh = 0;
@@ -513,7 +513,7 @@ async function renderOverview() {
     <div class="panel-header">
       <div class="panel-title">
         <div class="p-icon">⚡</div>
-        <span class="p-title">Solar Car Charger</span>
+        <span class="p-title">SolarCharge</span>
       </div>
       ${pillHtml}
     </div>
@@ -952,7 +952,7 @@ async function setChart2Range(days, btn) {
 // UI — INSTELLINGEN TAB
 // ─────────────────────────────────────────────
 function renderSettings() {
-  const autoEnabled = getState('switch.solar_car_automation_enabled').state === 'on';
+  const autoEnabled = getState('switch.solar_charger_automation_enabled').state === 'on';
 
   const sensors = [
     ['P1 netstroom', cfg.p1_power_sensor],
@@ -964,7 +964,7 @@ function renderSettings() {
   document.getElementById('tab-settings').innerHTML = `
     <div class="settings-card">
       <div class="settings-title">Automatisering</div>
-      ${settingToggle('Automatisering actief', 'switch.solar_car_automation_enabled', autoEnabled)}
+      ${settingToggle('Automatisering actief', 'switch.solar_charger_automation_enabled', autoEnabled)}
       ${settingNumber('Minimaal overschot om te laden', 'min_surplus_w', cfg.min_surplus_w || 500, 'W', 0, 5000, 50)}
       ${settingNumber('Vertraging inschakelen', 'delay_on_seconds', cfg.delay_on_seconds || 120, 's', 30, 600, 30)}
       ${settingNumber('Vertraging uitschakelen', 'delay_off_seconds', cfg.delay_off_seconds || 180, 's', 30, 600, 30)}
@@ -992,7 +992,7 @@ function renderSettings() {
         </div>`;
       }).join('')}
       <div style="margin-top:10px;font-size:11px;color:#9ca3af">
-        Sensoren wijzigen via <strong>Instellingen → Integraties → Solar Car Charger → Opties</strong>
+        Sensoren wijzigen via <strong>Instellingen → Integraties → SolarCharge → Opties</strong>
       </div>
     </div>`;
 }
@@ -1051,11 +1051,11 @@ async function saveSetting(key) {
   cfg[key] = val;
   // Persisteer in config via input_number helpers indien aanwezig
   const entityMap = {
-    min_surplus_w:       'number.solar_car_min_surplus',
-    delay_on_seconds:    'number.solar_car_delay_on',
-    delay_off_seconds:   'number.solar_car_delay_off',
-    efficiency_percent:  'number.solar_car_efficiency',
-    noplug_threshold_w:  'number.solar_car_noplug_threshold',
+    min_surplus_w:       'number.solar_charger_min_surplus',
+    delay_on_seconds:    'number.solar_charger_delay_on',
+    delay_off_seconds:   'number.solar_charger_delay_off',
+    efficiency_percent:  'number.solar_charger_efficiency',
+    noplug_threshold_w:  'number.solar_charger_noplug_threshold',
   };
   const entityId = entityMap[key];
   if (entityId && states[entityId] !== undefined) {
@@ -1094,11 +1094,11 @@ function showError(msg) {
 const WATCHED = () => [
   cfg.p1_power_sensor, cfg.solar_power_sensor,
   cfg.charger_switch, cfg.charger_power_sensor,
-  'number.solar_car_energy_today',
-  'number.solar_car_energy_in_battery_today',
-  'number.solar_car_energy_total',
-  'text.solar_car_session_start',
-  'switch.solar_car_automation_enabled',
+  'number.solar_charger_energy_today',
+  'number.solar_charger_energy_in_battery_today',
+  'number.solar_charger_energy_total',
+  'text.solar_charger_session_start',
+  'switch.solar_charger_automation_enabled',
 ].filter(Boolean);
 
 function onStateChange(event) {
@@ -1124,7 +1124,7 @@ async function init() {
   await loadConfig();
 
   if (!cfg.p1_power_sensor) {
-    showError('Integratie nog niet geconfigureerd. Ga naar Instellingen → Integraties → Solar Car Charger → Configureren.');
+    showError('Integratie nog niet geconfigureerd. Ga naar Instellingen → Integraties → SolarCharge → Configureren.');
     return;
   }
 

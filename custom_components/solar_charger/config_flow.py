@@ -1,4 +1,4 @@
-"""Config flow voor Solar Car Charger — wizard bij installatie en via Opties."""
+"""Config flow voor SolarCharge — wizard bij installatie en via Opties."""
 from __future__ import annotations
 
 import voluptuous as vol
@@ -62,7 +62,7 @@ def _number_selector(min_val: float, max_val: float, step: float, unit: str) -> 
 
 
 class SolarCarChargerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Wizard bij eerste installatie van Solar Car Charger."""
+    """Wizard bij eerste installatie van SolarCharge."""
 
     VERSION = 1
 
@@ -152,7 +152,7 @@ class SolarCarChargerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._data.update(user_input)
             return self.async_create_entry(
-                title="Solar Car Charger",
+                title="SolarCharge",
                 data=self._data,
             )
 

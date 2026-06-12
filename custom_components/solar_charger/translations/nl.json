@@ -19,7 +19,7 @@
         }
       },
       "charger_sensors": {
-        "title": "Auto lader — MQTT schakelaar",
+        "title": "Lader — MQTT schakelaar",
         "description": "Selecteer de schakelaar en de ingebouwde energiemeter van je laadpaal.",
         "data": {
           "charger_switch": "Lader schakelaar (switch.*)",
@@ -33,7 +33,7 @@
       },
       "thresholds": {
         "title": "Drempelwaarden",
-        "description": "Stel de standaardwaarden in. **Je kan deze later altijd aanpassen in het Solar Car Charger dashboard zelf.**",
+        "description": "Stel de standaardwaarden in. **Je kan deze later altijd aanpassen in het SolarCharge dashboard zelf.**",
         "data": {
           "min_surplus_w": "Minimaal overschot om te starten (W)",
           "delay_on_seconds": "Vertraging inschakelen (seconden)",
@@ -55,7 +55,7 @@
       "not_power_sensor": "Deze sensor heeft geen vermogen eenheid (W of kW). Kies een power-sensor."
     },
     "abort": {
-      "already_configured": "Solar Car Charger and Monitor is al geconfigureerd. Gebruik 'Opties' om instellingen te wijzigen."
+      "already_configured": "SolarCharge is al geconfigureerd. Gebruik 'Opties' om instellingen te wijzigen."
     }
   },
   "options": {
@@ -74,7 +74,7 @@
         }
       },
       "charger_sensors": {
-        "title": "Auto lader — MQTT schakelaar",
+        "title": "Lader — MQTT schakelaar",
         "data": {
           "charger_switch": "Lader schakelaar (switch.*)",
           "charger_power_sensor": "Huidig verbruik lader (W)",

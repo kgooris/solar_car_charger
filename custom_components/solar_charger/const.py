@@ -1,9 +1,9 @@
-"""Constanten voor Solar Car Charger."""
+"""Constanten voor SolarCharge."""
 
-DOMAIN = "solar_car_charger"
-PANEL_URL = "solar-car-charger"
-PANEL_TITLE = "Solar Car Charger and Monitor"
-PANEL_ICON = "mdi:car-electric"
+DOMAIN = "solar_charger"
+PANEL_URL = "solar-charger"
+PANEL_TITLE = "SolarCharge"
+PANEL_ICON = "mdi:battery-charging"
 
 # Config entry sleutels — sensoren
 CONF_P1_POWER = "p1_power_sensor"

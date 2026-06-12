@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Background -->
+  <circle cx="128" cy="128" r="128" fill="#16a34a"/>
+
+  <!-- Sun -->
+  <circle cx="128" cy="62" r="26" fill="#fbbf24"/>
+  <g stroke="#fbbf24" stroke-width="8" stroke-linecap="round">
+    <line x1="128" y1="22" x2="128" y2="12"/>
+    <line x1="154" y1="30" x2="161" y2="22"/>
+    <line x1="170" y1="53" x2="180" y2="47"/>
+    <line x1="173" y1="79" x2="184" y2="79"/>
+    <line x1="102" y1="30" x2="95"  y2="22"/>
+    <line x1="86"  y1="53" x2="76"  y2="47"/>
+    <line x1="83"  y1="79" x2="72"  y2="79"/>
+  </g>
+
+  <!-- Battery body (horizontal) -->
+  <rect x="40" y="144" width="164" height="76" rx="12" fill="white"/>
+  <!-- Positive terminal (right) -->
+  <rect x="204" y="162" width="18" height="40" rx="5" fill="white"/>
+  <!-- Charge level fill (~70%) -->
+  <rect x="50" y="153" width="100" height="58" rx="7" fill="#bbf7d0"/>
+
+  <!-- Lightning bolt (charging symbol) -->
+  <path d="M132,150 L108,190 L126,190 L102,220 L152,184 L134,184 Z"
+        fill="#fbbf24" stroke="#d97706" stroke-width="2" stroke-linejoin="round"/>
+</svg>

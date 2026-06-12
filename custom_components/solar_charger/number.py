@@ -12,15 +12,15 @@ from .const import (
 async def async_setup_entry(hass, entry, async_add_entities):
     cfg = {**entry.data, **entry.options}
     async_add_entities([
-        SolarCarNumber("solar_car_energy_today",             "Solar Car Energy Today",             0,  999,  0.001, "kWh", 0),
-        SolarCarNumber("solar_car_energy_in_battery_today",  "Solar Car Energy In Battery Today",  0,  999,  0.001, "kWh", 0),
-        SolarCarNumber("solar_car_energy_total",             "Solar Car Energy Total",             0, 9999,  0.001, "kWh", 0),
-        SolarCarNumber("solar_car_session_duration_minutes", "Solar Car Session Duration Minutes", 0, 9999,  1,     "min", 0),
-        SolarCarNumber("solar_car_min_surplus",              "Solar Car Min Surplus",              0, 5000, 50,     "W",   cfg.get(CONF_MIN_SURPLUS, DEFAULT_MIN_SURPLUS)),
-        SolarCarNumber("solar_car_delay_on",                 "Solar Car Delay On",                30,  600, 30,     "s",   cfg.get(CONF_DELAY_ON, DEFAULT_DELAY_ON)),
-        SolarCarNumber("solar_car_delay_off",                "Solar Car Delay Off",               30,  600, 30,     "s",   cfg.get(CONF_DELAY_OFF, DEFAULT_DELAY_OFF)),
-        SolarCarNumber("solar_car_efficiency",               "Solar Car Efficiency",              70,  100,  1,     "%",   cfg.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)),
-        SolarCarNumber("solar_car_noplug_threshold",         "Solar Car Noplug Threshold",         0,  200, 10,     "W",   50),
+        SolarCarNumber("solar_charger_energy_today",             "SolarCharge Energy Today",             0,  999,  0.001, "kWh", 0),
+        SolarCarNumber("solar_charger_energy_in_battery_today",  "SolarCharge Energy In Battery Today",  0,  999,  0.001, "kWh", 0),
+        SolarCarNumber("solar_charger_energy_total",             "SolarCharge Energy Total",             0, 9999,  0.001, "kWh", 0),
+        SolarCarNumber("solar_charger_session_duration_minutes", "SolarCharge Session Duration Minutes", 0, 9999,  1,     "min", 0),
+        SolarCarNumber("solar_charger_min_surplus",              "SolarCharge Min Surplus",              0, 5000, 50,     "W",   cfg.get(CONF_MIN_SURPLUS, DEFAULT_MIN_SURPLUS)),
+        SolarCarNumber("solar_charger_delay_on",                 "SolarCharge Delay On",                30,  600, 30,     "s",   cfg.get(CONF_DELAY_ON, DEFAULT_DELAY_ON)),
+        SolarCarNumber("solar_charger_delay_off",                "SolarCharge Delay Off",               30,  600, 30,     "s",   cfg.get(CONF_DELAY_OFF, DEFAULT_DELAY_OFF)),
+        SolarCarNumber("solar_charger_efficiency",               "SolarCharge Efficiency",              70,  100,  1,     "%",   cfg.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)),
+        SolarCarNumber("solar_charger_noplug_threshold",         "SolarCharge Noplug Threshold",         0,  200, 10,     "W",   50),
     ])
 
 

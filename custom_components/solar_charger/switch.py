@@ -11,9 +11,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class SolarCarAutomationSwitch(SwitchEntity, RestoreEntity):
     _attr_has_entity_name = False
-    _attr_unique_id = "solar_car_automation_enabled"
-    _attr_name = "Solar Car Automation Enabled"
-    _attr_icon = "mdi:car-electric"
+    _attr_unique_id = "solar_charger_automation_enabled"
+    _attr_name = "SolarCharge Automation Enabled"
+    _attr_icon = "mdi:battery-charging"
 
     def __init__(self):
         self._is_on = True

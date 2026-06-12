@@ -1,6 +1,6 @@
 """Sessie opslag via HA Storage API.
 
-Data wordt bewaard in config/.storage/solar_car_charger_sessions
+Data wordt bewaard in config/.storage/solar_charger_sessions
 en wordt meegenomen in HA backups.
 """
 from __future__ import annotations
@@ -10,7 +10,7 @@ from homeassistant.helpers.storage import Store
 
 _LOGGER = logging.getLogger(__name__)
 
-STORAGE_KEY     = "solar_car_charger_sessions"
+STORAGE_KEY     = "solar_charger_sessions"
 STORAGE_VERSION = 1
 MAX_SESSIONS    = 200
 
@@ -45,4 +45,4 @@ async def async_delete_all_sessions(hass: HomeAssistant) -> None:
     """Verwijder alle sessies (voor debug/reset)."""
     store = _get_store(hass)
     await store.async_save({"sessions": []})
-    _LOGGER.info("Alle Solar Car sessies verwijderd")
+    _LOGGER.info("Alle SolarCharge sessies verwijderd")
